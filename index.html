@@ -130,13 +130,45 @@
     <p id="load-status" class="text-sm font-semibold text-white drop-shadow">Kaarten laden…</p>
   </div>
 
-  <!-- ── View: quiz (placeholder, ticket 04) ── -->
+  <!-- ── View: quiz (ticket 04) ── -->
   <div id="view-quiz" class="view hidden relative min-h-screen w-full flex flex-col items-center justify-center gap-6 px-4 py-10">
+
+    <!-- Ouder-knop -->
+    <button type="button" id="btn-parent-quiz" aria-label="Ouder-dashboard"
+      class="btn-press absolute top-4 right-4 w-12 h-12 rounded-full bg-white border-4 border-ink text-2xl flex items-center justify-center">⚙️</button>
+
+    <!-- Voortgangssegmenten -->
+    <div id="quiz-progress-segments" class="flex gap-1 justify-center flex-wrap max-w-md"></div>
     <p id="quiz-progress" class="text-white font-bold text-lg drop-shadow"></p>
+
+    <!-- Spraakbel met opgave -->
     <div class="bubble px-14 py-8 text-center">
       <p id="quiz-fact" class="text-6xl font-bold text-ink"></p>
     </div>
-    <p class="text-white font-semibold drop-shadow">Quiz — komt eraan!</p>
+
+    <!-- Antwoordweergave -->
+    <div id="quiz-answer-display" class="bg-ink text-white rounded-full w-16 h-16 flex items-center justify-center text-2xl font-bold">–</div>
+
+    <!-- Cijfertoetsenbord -->
+    <div class="grid grid-cols-3 gap-4">
+      <button type="button" class="keypad-digit btn-press w-16 h-16 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#FF6B6B]" data-digit="1">1</button>
+      <button type="button" class="keypad-digit btn-press w-16 h-16 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#F39C12]" data-digit="2">2</button>
+      <button type="button" class="keypad-digit btn-press w-16 h-16 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#2ECC71]" data-digit="3">3</button>
+      <button type="button" class="keypad-digit btn-press w-16 h-16 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#3498DB]" data-digit="4">4</button>
+      <button type="button" class="keypad-digit btn-press w-16 h-16 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#9B59B6]" data-digit="5">5</button>
+      <button type="button" class="keypad-digit btn-press w-16 h-16 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#FF6B6B]" data-digit="6">6</button>
+      <button type="button" class="keypad-digit btn-press w-16 h-16 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#F39C12]" data-digit="7">7</button>
+      <button type="button" class="keypad-digit btn-press w-16 h-16 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#2ECC71]" data-digit="8">8</button>
+      <button type="button" class="keypad-digit btn-press w-16 h-16 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#3498DB]" data-digit="9">9</button>
+      <button type="button" id="btn-check" class="btn-press col-span-2 bg-ink text-white text-xl font-bold h-14 rounded-3xl border-4 border-ink">Kijk na!</button>
+      <button type="button" class="keypad-digit btn-press w-16 h-16 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#9B59B6]" data-digit="0">0</button>
+    </div>
+
+    <!-- Feedback (verborgen tot na controle) -->
+    <div id="quiz-feedback" class="hidden text-2xl font-bold"></div>
+
+    <!-- Stoppen -->
+    <button type="button" id="btn-stop" class="text-white font-semibold underline drop-shadow">Stoppen</button>
   </div>
 
   <!-- ── View: viering (placeholder, ticket 06) ── -->
@@ -448,8 +480,12 @@
             return;
           }
           session = { cards: cards, currentIndex: 0, selectedTables: selectedTables.slice() };
-          renderQuizPlaceholder();
           showView('view-quiz');
+          if (typeof App.renderQuizCard === 'function') {
+            App.renderQuizCard();
+          } else {
+            renderQuizPlaceholder();
+          }
         });
       }
 
@@ -468,6 +504,156 @@
         get: function () { return session; },
         configurable: true
       });
+    })();
+  </script>
+
+  <!-- Quizlogica: toetsenbord, controle, voortgang (ticket 04) -->
+  <script>
+    (function () {
+      'use strict';
+      var App = window.App;
+
+      // ── Quiz-status ──
+      var enteredDigits = '';
+      var currentCard = null;
+      var answerChecked = false;
+
+      // ── Huidige kaart renderen ──
+      function renderCurrentCard() {
+        var session = App.session;
+        if (!session || session.currentIndex >= session.cards.length) return;
+
+        currentCard = session.cards[session.currentIndex];
+        enteredDigits = '';
+        answerChecked = false;
+
+        // Toon de opgave
+        document.getElementById('quiz-fact').textContent =
+          currentCard.fact.a + ' × ' + currentCard.fact.b + ' = ?';
+
+        // Wis antwoordweergave
+        updateAnswerDisplay();
+
+        // Verberg feedback
+        var feedback = document.getElementById('quiz-feedback');
+        if (feedback) feedback.classList.add('hidden');
+
+        // Update voortgang
+        renderProgress();
+
+        // Zet toetsenbord en controleknop weer aan
+        setKeypadEnabled(true);
+      }
+
+      // ── Antwoordweergave ──
+      function updateAnswerDisplay() {
+        var display = document.getElementById('quiz-answer-display');
+        if (display) {
+          display.textContent = enteredDigits || '–';
+        }
+      }
+
+      // ── Toetsenbord-invoer ──
+      function addDigit(digit) {
+        if (answerChecked) return;
+        // Maximaal 3 cijfers (grootste product is 10×10=100)
+        if (enteredDigits.length >= 3) return;
+        enteredDigits += digit;
+        updateAnswerDisplay();
+      }
+
+      function setKeypadEnabled(enabled) {
+        var buttons = document.querySelectorAll('#view-quiz .keypad-digit, #btn-check');
+        Array.prototype.forEach.call(buttons, function (btn) {
+          btn.disabled = !enabled;
+          btn.classList.toggle('opacity-50', !enabled);
+        });
+      }
+
+      // ── Antwoord controleren ──
+      function checkAnswer() {
+        if (answerChecked || !currentCard) return;
+        if (enteredDigits === '') return;
+
+        answerChecked = true;
+        var correctAnswer = currentCard.fact.a * currentCard.fact.b;
+        var entered = parseInt(enteredDigits, 10);
+        var feedback = document.getElementById('quiz-feedback');
+
+        if (entered === correctAnswer) {
+          feedback.innerHTML = '<span class="text-palm">Goed!</span>';
+        } else {
+          feedback.innerHTML = '<span class="text-coral">Fout! Het juiste antwoord is ' + correctAnswer + '</span>';
+        }
+        feedback.classList.remove('hidden');
+
+        // Schakel toetsenbord uit
+        setKeypadEnabled(false);
+
+        // Exposeer voor ticket 05 (beoordeling)
+        App.quizState = {
+          currentCard: currentCard,
+          correctAnswer: correctAnswer,
+          wasCorrect: entered === correctAnswer,
+          advance: function () {
+            var session = App.session;
+            session.currentIndex++;
+            if (session.currentIndex >= session.cards.length) {
+              App.showView('view-celebration');
+            } else {
+              renderCurrentCard();
+            }
+          }
+        };
+      }
+
+      // ── Voortgangssegmenten ──
+      function renderProgress() {
+        var session = App.session;
+        if (!session) return;
+
+        // Voortgangstekst
+        var progressText = document.getElementById('quiz-progress');
+        if (progressText) {
+          progressText.textContent = 'Opdracht ' + (session.currentIndex + 1) + ' van ' + session.cards.length;
+        }
+
+        // Voortgangssegmenten
+        var container = document.getElementById('quiz-progress-segments');
+        if (!container) return;
+
+        container.innerHTML = '';
+        for (var i = 0; i < session.cards.length; i++) {
+          var seg = document.createElement('div');
+          seg.className = 'w-8 h-3 rounded border-3 border-ink';
+          if (i < session.currentIndex) {
+            seg.classList.add('bg-palm');
+          } else if (i === session.currentIndex) {
+            seg.classList.add('bg-sunset');
+          } else {
+            seg.classList.add('bg-white');
+          }
+          container.appendChild(seg);
+        }
+      }
+
+      // ── Toetsenbord koppelen ──
+      function initKeypad() {
+        var digitButtons = document.querySelectorAll('#view-quiz .keypad-digit');
+        Array.prototype.forEach.call(digitButtons, function (btn) {
+          btn.addEventListener('click', function () {
+            addDigit(btn.getAttribute('data-digit'));
+          });
+        });
+
+        document.getElementById('btn-check').addEventListener('click', checkAnswer);
+      }
+
+      // ── Init ──
+      initKeypad();
+
+      // Exposeer renderCurrentCard voor ticket 03's startknop en ticket 05
+      App.renderQuizCard = renderCurrentCard;
     })();
   </script>
 </body>
