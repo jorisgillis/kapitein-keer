@@ -4,12 +4,34 @@
 
 **Blocked by:** 05 (Self-grading + FSRS scheduling + progress)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] ⚙️ button is visible on the table selection and quiz views
-- [ ] Tapping ⚙️ switches to the parent dashboard view
-- [ ] Dashboard shows three stat tiles: cards mastered (X/100), current streak (days), cards due today
-- [ ] Dashboard shows per-table accuracy bars for tables 1–10 with color coding (green/yellow/red)
-- [ ] "Terug" button returns to the previous child view
-- [ ] Dashboard is read-only — no data-modifying controls
-- [ ] Stats update correctly after grading cards in a session (reload to verify)
+- [x] ⚙️ button is visible on the table selection and quiz views
+- [x] Tapping ⚙️ switches to the parent dashboard view
+- [x] Dashboard shows three stat tiles: cards mastered (X/100), current streak (days), cards due today
+- [x] Dashboard shows per-table accuracy bars for tables 1–10 with color coding (green/yellow/red)
+- [x] "Terug" button returns to the previous child view
+- [x] Dashboard is read-only — no data-modifying controls
+- [x] Stats update correctly after grading cards in a session (reload to verify)
+
+## Answer
+
+Implemented in a single new `<script>` block at the end of `index.html` (tickets 06 & 07 together), plus HTML changes to `#view-parent`:
+
+### HTML changes
+
+Replaced `#view-parent` placeholder with a full dashboard: white card (`bg-white border-4 border-ink rounded-3xl`) containing a header row ("Voortgang" + ✕ close button), three sand-colored stat tiles in a 3-column grid (Beheerst, Dagen reeks, Vandaag), and a "Tafels" section with a container (`#parent-tables`) for per-table accuracy bars.
+
+### Script changes (new block)
+
+- **`computeDashboardStats()`** — computes:
+  - **Beheerst**: count of cards with `seen && stability > 21`
+  - **Dagen reeks**: from `App.loadStreak().streak`
+  - **Vandaag**: count of seen cards with `nextReviewDate <= end of today`
+  - **Per-table accuracy**: for each table 1–10, `(repetitions - lapses) / repetitions * 100` (0% if no graded cards)
+- **`renderDashboard()`** — fills the three stat tiles and renders 10 horizontal accuracy bars with color coding: green (#2ECC71) for >80%, yellow (#F39C12) for 50–80%, red (#FF6B6B) for <50%.
+- **`openParentDashboard(fromView)`** — stores the originating view, calls `renderDashboard()`, shows `view-parent`.
+- **`#btn-parent`** (table view) → `openParentDashboard('view-tables')`
+- **`#btn-parent-quiz`** (quiz view) → `openParentDashboard('view-quiz')`
+- **`#btn-parent-back`** (✕) → returns to `previousView`
+- Dashboard is strictly read-only — the only interactive element is the ✕ close button.
