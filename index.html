@@ -70,6 +70,17 @@
     .view.hidden {
       display: none;
     }
+    /* Quiz: feedback en beoordelingsknoppen reserveren altijd hun ruimte,
+       zodat het gecentreerde scherm niet verschuift wanneer ze verschijnen */
+    #quiz-feedback.hidden,
+    #quiz-grades.hidden {
+      display: block;
+      visibility: hidden;
+    }
+    /* Lege feedback is één regel hoog (text-2xl = 2rem regelhoogte) */
+    #quiz-feedback.hidden {
+      min-height: 2rem;
+    }
   </style>
 </head>
 <body class="min-h-screen">
