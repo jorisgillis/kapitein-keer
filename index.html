@@ -167,6 +167,17 @@
     <!-- Feedback (verborgen tot na controle) -->
     <div id="quiz-feedback" class="hidden text-2xl font-bold"></div>
 
+    <!-- Beoordelingsknoppen (ticket 05) — verborgen tot antwoord is nagekeken -->
+    <div id="quiz-grades" class="hidden">
+      <p class="text-white font-bold text-xl mb-3 drop-shadow">Hoe ging het?</p>
+      <div class="flex gap-3 flex-wrap justify-center">
+        <button type="button" class="grade-btn btn-press px-5 py-3 rounded-3xl border-4 border-ink font-semibold text-white text-lg bg-[#FF6B6B]" data-grade="1">😞 Opnieuw</button>
+        <button type="button" class="grade-btn btn-press px-5 py-3 rounded-3xl border-4 border-ink font-semibold text-white text-lg bg-[#F39C12]" data-grade="2">😬 Moeilijk</button>
+        <button type="button" class="grade-btn btn-press px-5 py-3 rounded-3xl border-4 border-ink font-semibold text-white text-lg bg-[#2ECC71]" data-grade="3">😊 Goed</button>
+        <button type="button" class="grade-btn btn-press px-5 py-3 rounded-3xl border-4 border-ink font-semibold text-white text-lg bg-[#3498DB]" data-grade="4">🤩 Makkelijk</button>
+      </div>
+    </div>
+
     <!-- Stoppen -->
     <button type="button" id="btn-stop" class="text-white font-semibold underline drop-shadow">Stoppen</button>
   </div>
@@ -177,6 +188,7 @@
       <h2 class="text-3xl font-bold text-ink">Goed gedaan!</h2>
     </div>
     <p class="text-white font-semibold text-xl drop-shadow">Viering — komt eraan!</p>
+    <button type="button" id="btn-celebration-back" class="btn-press bg-ink text-white text-xl font-bold px-10 py-3 rounded-full border-4 border-ink">Terug naar start</button>
   </div>
 
   <!-- ── View: alles klaar (placeholder, ticket 06) ── -->
@@ -654,6 +666,142 @@
 
       // Exposeer renderCurrentCard voor ticket 03's startknop en ticket 05
       App.renderQuizCard = renderCurrentCard;
+    })();
+  </script>
+
+  <!-- Zelfbeoordeling + FSRS-scheduling + voortgang (ticket 05) -->
+  <script>
+    (function () {
+      'use strict';
+      var App = window.App;
+
+      // ── Elementen ──
+      var feedbackEl = document.getElementById('quiz-feedback');
+      var gradesEl = document.getElementById('quiz-grades');
+
+      // ── Toon beoordelingsknoppen wanneer feedback verschijnt ──
+      // MutationObserver: ticket 04 toont feedback door 'hidden' te verwijderen.
+      var observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+            if (!feedbackEl.classList.contains('hidden')) {
+              gradesEl.classList.remove('hidden');
+            }
+          }
+        });
+      });
+      observer.observe(feedbackEl, { attributes: true, attributeFilter: ['class'] });
+
+      // ── Verberg beoordelingsknoppen bij nieuwe kaart ──
+      // Wrap App.renderQuizCard (aangeroepen door ticket 03 startknop).
+      var originalRenderQuizCard = App.renderQuizCard;
+      App.renderQuizCard = function () {
+        gradesEl.classList.add('hidden');
+        if (originalRenderQuizCard) originalRenderQuizCard();
+      };
+
+      // ── Reeks (streak) bijwerken ──
+      function updateStreak() {
+        var streak = App.loadStreak();
+        var today = new Date();
+        var todayStr = today.toISOString().split('T')[0];
+
+        if (streak.lastPracticeDate === todayStr) {
+          // Vandaag al geoefend — geen wijziging
+          return;
+        }
+
+        var yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        var yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        if (streak.lastPracticeDate === yesterdayStr) {
+          streak.streak += 1;
+        } else {
+          // Eerste keer of reeks gebroken — opnieuw beginnen
+          streak.streak = 1;
+        }
+
+        streak.lastPracticeDate = todayStr;
+        App.saveStreak(streak);
+      }
+
+      // ── Statistieken verversen (startscherm) ──
+      // Ticket 02's refreshStats is niet geëxposeerd — hier opnieuw geïmplementeerd.
+      App.refreshStats = function () {
+        var cards = App.cards;
+        var mastered = cards.filter(function (c) { return c.seen; }).length;
+        var masteredEl = document.getElementById('stat-mastered');
+        var cardsEl = document.getElementById('stat-cards');
+        var loadEl = document.getElementById('load-status');
+        if (masteredEl) masteredEl.textContent = mastered + ' / 100';
+        if (cardsEl) cardsEl.textContent = String(cards.length);
+        if (loadEl) loadEl.textContent = cards.length + ' kaarten geladen';
+      };
+
+      // ── Beoordeling verwerken ──
+      function handleGrade(gradeValue) {
+        var quizState = App.quizState;
+        if (!quizState || !quizState.currentCard) return;
+
+        // Voorkom dubbele verwerking
+        if (gradesEl.classList.contains('hidden')) return;
+
+        var card = quizState.currentCard;
+        var grade = Number(gradeValue); // 1=Again, 2=Hard, 3=Good, 4=Easy
+
+        // Verberg de knoppen meteen (advance rendert mogelijk de volgende kaart)
+        gradesEl.classList.add('hidden');
+
+        // 1. FSRS-grade toepassen op de kaart
+        var updatedCard = App.applyGrade(card, grade);
+
+        // 2. Kaart in App.cards vervangen (match op fact)
+        var allCards = App.cards;
+        for (var i = 0; i < allCards.length; i++) {
+          if (allCards[i].fact.a === card.fact.a && allCards[i].fact.b === card.fact.b) {
+            allCards[i] = updatedCard;
+            break;
+          }
+        }
+
+        // 3. Opslaan in localStorage
+        App.saveCards(allCards);
+
+        // 4. Reeks bijwerken (eerste grade van de dag)
+        updateStreak();
+
+        // 5. Statistieken verversen (voor als de gebruiker terugkeert)
+        App.refreshStats();
+
+        // 6. Naar volgende kaart (ticket 04's advance regelt voortgang + evt. viering)
+        quizState.advance();
+      }
+
+      // ── Beoordelingsknoppen koppelen ──
+      function initGradeButtons() {
+        var buttons = document.querySelectorAll('#quiz-grades .grade-btn');
+        Array.prototype.forEach.call(buttons, function (btn) {
+          btn.addEventListener('click', function () {
+            handleGrade(btn.getAttribute('data-grade'));
+          });
+        });
+      }
+
+      // ── Viering: terug naar start ──
+      function initCelebrationBack() {
+        var btn = document.getElementById('btn-celebration-back');
+        if (btn) {
+          btn.addEventListener('click', function () {
+            App.showView('view-tables');
+            App.setSession(null);
+          });
+        }
+      }
+
+      // ── Init ──
+      initGradeButtons();
+      initCelebrationBack();
     })();
   </script>
 </body>
