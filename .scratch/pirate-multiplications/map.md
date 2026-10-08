@@ -1,6 +1,6 @@
 ## Destination
 
-A complete, build-ready spec for a single-file HTML web app that helps an 8-year-old Flemish-speaking child practice multiplication tables (1–10) using FSRS v6 spaced repetition. Pirate-themed, Dutch UI, Tailwind via CDN, local storage only, no build step.
+A complete, build-ready spec for "Kapitein Keer" — a single-file HTML web app that helps an 8-year-old Flemish-speaking child practice multiplication tables (1–10) using FSRS v6 spaced repetition. Pirate-themed, Dutch UI, Tailwind via CDN, local storage only, no build step.
 
 ## Notes
 
@@ -17,6 +17,7 @@ A complete, build-ready spec for a single-file HTML web app that helps an 8-year
 - [Practice session flow](issues/02-session-flow.md): All due cards + up to 10 new per session. Child selects which tables (1–10) to include; random order within selected tables. One attempt per card, then reveal answer. 4-button self-grade with icons (Again/Hard/Good/Easy). Auto-end with celebration + stop-early button. Empty state shows "all caught up" with "practice anyway" option.
 - [Parent dashboard design](issues/03-parent-dashboard.md): Shows accuracy per table, cards mastered (of 100), current streak, cards due today. Accessed via small ⚙️ button in corner. Strictly read-only. Calmer, data-focused style with subtle nautical accent.
 - [Visual design & pirate theme](issues/04-visual-design.md): Variant C "Pirate Cove" chosen — playful toy aesthetic with Fredoka font, bright palette (sky/coral/sand/green/orange), speech-bubble problem card, colorful round keypad, thick ink borders. Parent dashboard uses white cards with sand stat tiles and colored progress bars. Prototype at `.scratch/pirate-multiplications/prototype/design-variants.html`.
+- **App name**: "Kapitein Keer" — Dutch pirate-themed name for the `<title>` and start screen header.
 
 ## Not yet specified
 
@@ -24,7 +25,6 @@ A complete, build-ready spec for a single-file HTML web app that helps an 8-year
 - Audio / text-to-speech in Dutch — deferred
 - Hosting or sharing beyond opening the HTML file locally — deferred
 - Difficulty customization beyond what FSRS auto-schedules — unspecified
-- App name and branding details — needs a decision (see tickets)
 
 ## Out of scope
 
