@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pirate Multiplications — Design Prototype</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Nunito:wght@400;600;700;800&family=Playfair+Display:wght@500;700;900&family=Source+Sans+3:wght@400;600;700&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: sans-serif; }
+  .variant { display: none; min-height: 100vh; }
+  .variant.active { display: block; }
+
+  /* ── Variant A: Treasure Map ── */
+  #variant-A {
+    font-family: 'Nunito', sans-serif;
+    background: #F4E8D0;
+    background-image:
+      radial-gradient(ellipse at 20% 80%, rgba(139,105,20,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(27,58,75,0.06) 0%, transparent 50%);
+  }
+  #variant-A .font-display { font-family: 'Pirata One', cursive; }
+  #variant-A .scroll-card {
+    background: #FDF6E3;
+    border: 3px solid #8B6914;
+    border-radius: 4px 4px 12px 12px;
+    box-shadow: 0 4px 0 #D4C5A0, 0 8px 20px rgba(44,24,16,0.15);
+    position: relative;
+  }
+  #variant-A .scroll-card::before, #variant-A .scroll-card::after {
+    content: '';
+    position: absolute;
+    left: -8px; right: -8px;
+    height: 14px;
+    background: #8B6914;
+    border-radius: 7px;
+  }
+  #variant-A .scroll-card::before { top: -10px; }
+  #variant-A .scroll-card::after { bottom: -10px; }
+  #variant-A .keypad-btn {
+    font-family: 'Pirata One', cursive;
+    font-size: 1.6rem;
+    background: #1B3A4B;
+    color: #F4E8D0;
+    border: 2px solid #D4A843;
+    border-radius: 8px;
+    box-shadow: 0 3px 0 #0D1F2A;
+    transition: transform 0.05s, box-shadow 0.05s;
+  }
+  #variant-A .keypad-btn:active { transform: translateY(3px); box-shadow: 0 0 0 #0D1F2A; }
+  #variant-A .grade-btn { border-radius: 10px; border: 2px solid; font-weight: 800; transition: transform 0.1s; }
+  #variant-A .grade-btn:active { transform: scale(0.95); }
+  #variant-A .map-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #8B6914; }
+  #variant-A .map-dot.done { background: #D4A843; }
+  #variant-A .map-dot.current { background: #1B3A4B; animation: pulse-a 1.5s infinite; }
+  @keyframes pulse-a { 0%,100% { transform: scale(1); } 50% { transform: scale(1.4); } }
+  #variant-A .parent-card { background: #FDF6E3; border: 2px solid #D4C5A0; border-radius: 8px; }
+  #variant-A .parent-header { background: #1B3A4B; color: #F4E8D0; }
+
+  /* ── Variant B: Ship's Helm ── */
+  #variant-B {
+    font-family: 'Source Sans 3', sans-serif;
+    background: #0D1B2A;
+    color: #F5F0E6;
+  }
+  #variant-B .font-display { font-family: 'Playfair Display', serif; }
+  #variant-B .helm-panel {
+    background: #1D3557;
+    border: 1px solid #C9A227;
+    border-radius: 2px;
+  }
+  #variant-B .helm-screen {
+    background: #0A1420;
+    border: 2px solid #C9A227;
+    border-radius: 2px;
+    font-family: 'Playfair Display', serif;
+  }
+  #variant-B .keypad-btn {
+    background: #1D3557;
+    color: #F5F0E6;
+    border: 1px solid #2A4A6B;
+    font-weight: 600;
+    font-size: 1.3rem;
+    transition: background 0.15s;
+  }
+  #variant-B .keypad-btn:hover { background: #2A4A6B; }
+  #variant-B .keypad-btn:active { background: #C9A227; color: #0D1B2A; }
+  #variant-B .grade-btn { border: 1px solid; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; font-size: 0.75rem; }
+  #variant-B .voyage-bar { height: 6px; background: #1D3557; border-radius: 3px; overflow: hidden; }
+  #variant-B .voyage-fill { height: 100%; background: #C9A227; transition: width 0.3s; }
+  #variant-B .instrument { border: 1px solid #2A4A6B; background: #0A1420; }
+  #variant-B .brass-text { color: #C9A227; }
+  #variant-B .parent-card { background: #1D3557; border: 1px solid #2A4A6B; }
+  #variant-B .seafoam-text { color: #A8DADC; }
+
+  /* ── Variant C: Pirate Cove ── */
+  #variant-C {
+    font-family: 'Fredoka', sans-serif;
+    background: #87CEEB;
+    background-image:
+      radial-gradient(circle at 15% 15%, rgba(255,255,255,0.3) 0%, transparent 30%),
+      radial-gradient(circle at 85% 85%, rgba(255,229,180,0.4) 0%, transparent 40%);
+  }
+  #variant-C .bubble {
+    background: #FFFFFF;
+    border-radius: 24px;
+    border: 4px solid #2C1810;
+    position: relative;
+    box-shadow: 0 6px 0 rgba(44,24,16,0.15);
+  }
+  #variant-C .bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -16px; left: 40px;
+    border: 10px solid transparent;
+    border-top-color: #2C1810;
+  }
+  #variant-C .keypad-btn {
+    border-radius: 50%;
+    border: 4px solid #2C1810;
+    font-weight: 700;
+    font-size: 1.5rem;
+    box-shadow: 0 5px 0 rgba(44,24,16,0.2);
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  #variant-C .keypad-btn:active { transform: translateY(5px); box-shadow: 0 0 0 rgba(44,24,16,0.2); }
+  #variant-C .grade-btn { border-radius: 20px; border: 4px solid #2C1810; font-weight: 600; box-shadow: 0 4px 0 rgba(44,24,16,0.15); transition: transform 0.08s; }
+  #variant-C .grade-btn:active { transform: scale(0.93); }
+  #variant-C .progress-seg { border-radius: 8px; border: 3px solid #2C1810; }
+  #variant-C .parent-card { background: #FFFFFF; border: 4px solid #2C1810; border-radius: 20px; box-shadow: 0 6px 0 rgba(44,24,16,0.15); }
+
+  /* ── Switcher ── */
+  #switcher {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #1a1a2e;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 999px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    user-select: none;
+  }
+  #switcher button {
+    background: #16213e;
+    border: none;
+    color: #fff;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  #switcher button:hover { background: #0f3460; }
+  #switcher .variant-label { min-width: 180px; text-align: center; font-weight: 600; }
+
+  /* ── Shared ── */
+  .child-view, .parent-view { display: none; }
+  .child-view.active, .parent-view.active { display: block; }
+  .table-toggle {
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- VARIANT A: Treasure Map (Storybook)       -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="variant-A" class="variant">
+
+  <!-- Child View -->
+  <div class="child-view active" data-view="child">
+    <div class="min-h-screen flex flex-col items-center justify-center px-4 py-8">
+      <!-- Progress map dots -->
+      <div class="flex items-center gap-1 mb-6 flex-wrap justify-center max-w-md">
+        <div class="map-dot done"></div><div class="map-dot done"></div><div class="map-dot current"></div>
+        <div class="map-dot"></div><div class="map-dot"></div><div class="map-dot"></div>
+        <div class="map-dot"></div><div class="map-dot"></div><div class="map-dot"></div>
+        <div class="map-dot"></div>
+      </div>
+      <p class="text-[#8B6914] font-bold text-sm mb-4">Opdracht 3 van 10</p>
+
+      <!-- Problem scroll -->
+      <div class="scroll-card px-12 py-8 text-center mb-8">
+        <p class="font-display text-6xl text-[#2C1810]">7 × 8 = ?</p>
+      </div>
+
+      <!-- Answer display -->
+      <div class="mb-4 h-14 flex items-center justify-center">
+        <span class="font-display text-4xl text-[#1B3A4B] border-b-4 border-[#D4A843] px-4">56</span>
+      </div>
+
+      <!-- Keypad -->
+      <div class="grid grid-cols-3 gap-3 mb-6 w-56">
+        <button class="keypad-btn py-3">1</button>
+        <button class="keypad-btn py-3">2</button>
+        <button class="keypad-btn py-3">3</button>
+        <button class="keypad-btn py-3">4</button>
+        <button class="keypad-btn py-3">5</button>
+        <button class="keypad-btn py-3">6</button>
+        <button class="keypad-btn py-3">7</button>
+        <button class="keypad-btn py-3">8</button>
+        <button class="keypad-btn py-3">9</button>
+        <button class="keypad-btn py-3 col-span-2" style="background:#D4A843;color:#2C1810;">Controleer</button>
+        <button class="keypad-btn py-3">0</button>
+      </div>
+
+      <!-- After answer: grade buttons -->
+      <div class="hidden" id="grade-A">
+        <p class="text-[#2C1810] font-bold text-lg mb-3">Hoe ging het?</p>
+        <div class="flex gap-3 flex-wrap justify-center">
+          <button class="grade-btn px-5 py-3 bg-red-100 border-red-400 text-red-700">😞 Opnieuw</button>
+          <button class="grade-btn px-5 py-3 bg-orange-100 border-orange-400 text-orange-700">😬 Moeilijk</button>
+          <button class="grade-btn px-5 py-3 bg-green-100 border-green-400 text-green-700">😊 Goed</button>
+          <button class="grade-btn px-5 py-3 bg-blue-100 border-blue-400 text-blue-700">🤩 Makkelijk</button>
+        </div>
+      </div>
+
+      <!-- Stop early + parent access -->
+      <div class="flex gap-4 mt-6 items-center">
+        <button class="text-[#8B6914] text-sm underline">Vroeg stoppen</button>
+        <button class="text-2xl" onclick="toggleView('A','parent')">⚙️</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Parent View -->
+  <div class="parent-view" data-view="parent">
+    <div class="min-h-screen p-6 max-w-2xl mx-auto">
+      <div class="parent-header rounded-t-lg px-6 py-4 flex items-center justify-between">
+        <h2 class="font-display text-2xl">Kapitein's Logboek</h2>
+        <button class="text-xl" onclick="toggleView('A','child')">✕</button>
+      </div>
+      <div class="parent-card rounded-b-lg p-6">
+        <!-- Stats row -->
+        <div class="grid grid-cols-3 gap-4 mb-6">
+          <div class="text-center p-3 bg-[#F4E8D0] rounded">
+            <p class="font-display text-3xl text-[#1B3A4B]">42<span class="text-lg">/100</span></p>
+            <p class="text-xs text-[#8B6914] font-bold">Beheerst</p>
+          </div>
+          <div class="text-center p-3 bg-[#F4E8D0] rounded">
+            <p class="font-display text-3xl text-[#D4A843]">5</p>
+            <p class="text-xs text-[#8B6914] font-bold">Dagen reeks</p>
+          </div>
+          <div class="text-center p-3 bg-[#F4E8D0] rounded">
+            <p class="font-display text-3xl text-[#1B3A4B]">12</p>
+            <p class="text-xs text-[#8B6914] font-bold">Vandaag te doen</p>
+          </div>
+        </div>
+        <!-- Accuracy per table -->
+        <h3 class="font-display text-lg text-[#2C1810] mb-3">Tafels</h3>
+        <div class="space-y-2">
+          <div class="flex items-center gap-3"><span class="font-bold text-[#8B6914] w-6">1×</span><div class="flex-1 h-4 bg-[#E8DCC0] rounded-full overflow-hidden"><div class="h-full bg-green-500" style="width:95%"></div></div><span class="text-sm font-bold">95%</span></div>
+          <div class="flex items-center gap-3"><span class="font-bold text-[#8B6914] w-6">2×</span><div class="flex-1 h-4 bg-[#E8DCC0] rounded-full overflow-hidden"><div class="h-full bg-green-500" style="width:90%"></div></div><span class="text-sm font-bold">90%</span></div>
+          <div class="flex items-center gap-3"><span class="font-bold text-[#8B6914] w-6">7×</span><div class="flex-1 h-4 bg-[#E8DCC0] rounded-full overflow-hidden"><div class="h-full bg-yellow-500" style="width:65%"></div></div><span class="text-sm font-bold">65%</span></div>
+          <div class="flex items-center gap-3"><span class="font-bold text-[#8B6914] w-6">8×</span><div class="flex-1 h-4 bg-[#E8DCC0] rounded-full overflow-hidden"><div class="h-full bg-red-400" style="width:40%"></div></div><span class="text-sm font-bold">40%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table selection (shown before session) -->
+  <div class="hidden" id="tables-A">
+    <div class="min-h-screen flex flex-col items-center justify-center px-4">
+      <h2 class="font-display text-4xl text-[#2C1810] mb-2">Kies je tafels</h2>
+      <p class="text-[#8B6914] mb-6">Welke tafels wil je oefenen?</p>
+      <div class="flex gap-2 flex-wrap justify-center mb-8 max-w-md">
+        <button class="table-toggle w-12 h-12 rounded-lg font-display text-xl bg-[#1B3A4B] text-[#F4E8D0] border-2 border-[#D4A843]">1</button>
+        <button class="table-toggle w-12 h-12 rounded-lg font-display text-xl bg-[#1B3A4B] text-[#F4E8D0] border-2 border-[#D4A843]">2</button>
+        <button class="table-toggle w-12 h-12 rounded-lg font-display text-xl bg-[#1B3A4B] text-[#F4E8D0] border-2 border-[#D4A843]">3</button>
+        <button class="table-toggle w-12 h-12 rounded-lg font-display text-xl bg-[#E8DCC0] text-[#8B6914] border-2 border-[#D4C5A0]">4</button>
+        <button class="table-toggle w-12 h-12 rounded-lg font-display text-xl bg-[#1B3A4B] text-[#F4E8D0] border-2 border-[#D4A843]">5</button>
+        <button class="table-toggle w-12 h-12 rounded-lg font-display text-xl bg-[#1B3A4B] text-[#F4E8D0] border-2 border-[#D4A843]">6</button>
+        <button class="table-toggle w-12 h-12 rounded-lg font-display text-xl bg-[#1B3A4B] text-[#F4E8D0] border-2 border-[#D4A843]">7</button>
+        <button class="table-toggle w-12 h-12 rounded-lg font-display text-xl bg-[#1B3A4B] text-[#F4E8D0] border-2 border-[#D4A843]">8</button>
+        <button class="table-toggle w-12 h-12 rounded-lg font-display text-xl bg-[#1B3A4B] text-[#F4E8D0] border-2 border-[#D4A843]">9</button>
+        <button class="table-toggle w-12 h-12 rounded-lg font-display text-xl bg-[#1B3A4B] text-[#F4E8D0] border-2 border-[#D4A843]">10</button>
+      </div>
+      <button class="font-display text-2xl bg-[#D4A843] text-[#2C1810] px-10 py-4 rounded-lg border-2 border-[#8B6914] shadow-md">Start!</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- VARIANT B: Ship's Helm (Navigation)       -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="variant-B" class="variant">
+
+  <!-- Child View -->
+  <div class="child-view active" data-view="child">
+    <div class="min-h-screen flex flex-col">
+      <!-- Top bar -->
+      <header class="helm-panel mx-4 mt-4 px-6 py-3 flex items-center justify-between">
+        <div>
+          <p class="text-xs brass-text uppercase tracking-widest">Sessie</p>
+          <p class="font-display text-lg">Oefening 3 / 10</p>
+        </div>
+        <div class="voyage-bar w-32">
+          <div class="voyage-fill" style="width:30%"></div>
+        </div>
+        <div class="flex gap-4 items-center">
+          <button class="text-xs text-[#A8DADC] hover:text-white">Stop</button>
+          <button class="text-xl" onclick="toggleView('B','parent')">⚙️</button>
+        </div>
+      </header>
+
+      <!-- Main helm area -->
+      <div class="flex-1 flex flex-col items-center justify-center px-4 py-8">
+        <!-- Heading display -->
+        <div class="helm-screen px-16 py-10 text-center mb-8">
+          <p class="text-xs brass-text uppercase tracking-widest mb-2">Te berekenen</p>
+          <p class="text-7xl font-bold text-[#F5F0E6]">7 × 8</p>
+          <div class="mt-4 h-1 w-24 mx-auto bg-[#C9A227]"></div>
+        </div>
+
+        <!-- Answer readout -->
+        <div class="instrument px-8 py-3 mb-6 min-w-40 text-center">
+          <p class="text-xs text-[#A8DADC] uppercase tracking-widest mb-1">Antwoord</p>
+          <p class="text-4xl font-display text-[#F5F0E6]">56</p>
+        </div>
+
+        <!-- Keypad: ship's control panel -->
+        <div class="helm-panel p-4 mb-6">
+          <div class="grid grid-cols-3 gap-2 w-52">
+            <button class="keypad-btn py-3 rounded">1</button>
+            <button class="keypad-btn py-3 rounded">2</button>
+            <button class="keypad-btn py-3 rounded">3</button>
+            <button class="keypad-btn py-3 rounded">4</button>
+            <button class="keypad-btn py-3 rounded">5</button>
+            <button class="keypad-btn py-3 rounded">6</button>
+            <button class="keypad-btn py-3 rounded">7</button>
+            <button class="keypad-btn py-3 rounded">8</button>
+            <button class="keypad-btn py-3 rounded">9</button>
+            <button class="keypad-btn py-3 rounded col-span-2 brass-text" style="border-color:#C9A227;">Bevestig</button>
+            <button class="keypad-btn py-3 rounded">0</button>
+          </div>
+        </div>
+
+        <!-- Grade buttons (after answer) -->
+        <div class="hidden" id="grade-B">
+          <p class="text-xs text-[#A8DADC] uppercase tracking-widest mb-3">Beoordeling</p>
+          <div class="flex gap-2">
+            <button class="grade-btn px-4 py-2 bg-transparent border-red-700 text-red-400">Opnieuw</button>
+            <button class="grade-btn px-4 py-2 bg-transparent border-orange-600 text-orange-400">Moeilijk</button>
+            <button class="grade-btn px-4 py-2 bg-transparent border-green-600 text-green-400">Goed</button>
+            <button class="grade-btn px-4 py-2 bg-transparent border-[#C9A227] brass-text">Makkelijk</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Parent View -->
+  <div class="parent-view" data-view="parent">
+    <div class="min-h-screen p-6 max-w-3xl mx-auto">
+      <header class="helm-panel px-6 py-4 flex items-center justify-between mb-6">
+        <div>
+          <p class="text-xs brass-text uppercase tracking-widest">Overzicht</p>
+          <h2 class="font-display text-2xl">Voortgang</h2>
+        </div>
+        <button class="text-xl text-[#A8DADC]" onclick="toggleView('B','child')">✕</button>
+      </header>
+
+      <!-- Instruments row -->
+      <div class="grid grid-cols-3 gap-4 mb-8">
+        <div class="instrument p-4 text-center">
+          <p class="text-3xl font-display text-[#F5F0E6]">42<span class="text-lg text-[#A8DADC]">/100</span></p>
+          <p class="text-xs text-[#A8DADC] uppercase tracking-widest mt-1">Beheerst</p>
+        </div>
+        <div class="instrument p-4 text-center">
+          <p class="text-3xl font-display brass-text">5</p>
+          <p class="text-xs text-[#A8DADC] uppercase tracking-widest mt-1">Dagen reeks</p>
+        </div>
+        <div class="instrument p-4 text-center">
+          <p class="text-3xl font-display text-[#F5F0E6]">12</p>
+          <p class="text-xs text-[#A8DADC] uppercase tracking-widest mt-1">Vandaag</p>
+        </div>
+      </div>
+
+      <!-- Table accuracy -->
+      <div class="parent-card p-6">
+        <h3 class="font-display text-lg mb-4">Tafeloverzicht</h3>
+        <div class="space-y-4">
+          <div class="flex items-center gap-4"><span class="font-display text-lg brass-text w-8">1×</span><div class="flex-1 h-2 bg-[#0A1420] rounded-full overflow-hidden"><div class="h-full bg-[#A8DADC]" style="width:95%"></div></div><span class="text-sm text-[#A8DADC] w-10 text-right">95%</span></div>
+          <div class="flex items-center gap-4"><span class="font-display text-lg brass-text w-8">2×</span><div class="flex-1 h-2 bg-[#0A1420] rounded-full overflow-hidden"><div class="h-full bg-[#A8DADC]" style="width:90%"></div></div><span class="text-sm text-[#A8DADC] w-10 text-right">90%</span></div>
+          <div class="flex items-center gap-4"><span class="font-display text-lg brass-text w-8">7×</span><div class="flex-1 h-2 bg-[#0A1420] rounded-full overflow-hidden"><div class="h-full bg-[#C9A227]" style="width:65%"></div></div><span class="text-sm text-[#A8DADC] w-10 text-right">65%</span></div>
+          <div class="flex items-center gap-4"><span class="font-display text-lg brass-text w-8">8×</span><div class="flex-1 h-2 bg-[#0A1420] rounded-full overflow-hidden"><div class="h-full bg-red-400" style="width:40%"></div></div><span class="text-sm text-[#A8DADC] w-10 text-right">40%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table selection -->
+  <div class="hidden" id="tables-B">
+    <div class="min-h-screen flex flex-col items-center justify-center px-4">
+      <div class="helm-screen px-12 py-8 text-center mb-6">
+        <p class="text-xs brass-text uppercase tracking-widest mb-2">Kies route</p>
+        <h2 class="font-display text-3xl">Welke tafels?</h2>
+      </div>
+      <div class="helm-panel p-4 mb-6">
+        <div class="grid grid-cols-5 gap-2">
+          <button class="table-toggle keypad-btn py-2 rounded brass-text" style="border-color:#C9A227;">1</button>
+          <button class="table-toggle keypad-btn py-2 rounded brass-text" style="border-color:#C9A227;">2</button>
+          <button class="table-toggle keypad-btn py-2 rounded brass-text" style="border-color:#C9A227;">3</button>
+          <button class="table-toggle keypad-btn py-2 rounded" style="opacity:0.4;">4</button>
+          <button class="table-toggle keypad-btn py-2 rounded brass-text" style="border-color:#C9A227;">5</button>
+          <button class="table-toggle keypad-btn py-2 rounded brass-text" style="border-color:#C9A227;">6</button>
+          <button class="table-toggle keypad-btn py-2 rounded brass-text" style="border-color:#C9A227;">7</button>
+          <button class="table-toggle keypad-btn py-2 rounded brass-text" style="border-color:#C9A227;">8</button>
+          <button class="table-toggle keypad-btn py-2 rounded brass-text" style="border-color:#C9A227;">9</button>
+          <button class="table-toggle keypad-btn py-2 rounded brass-text" style="border-color:#C9A227;">10</button>
+        </div>
+      </div>
+      <button class="px-10 py-3 brass-text font-display text-xl border border-[#C9A227] bg-transparent hover:bg-[#C9A227] hover:text-[#0D1B2A] transition-colors">Start</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- VARIANT C: Pirate Cove (Playful Toy)      -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="variant-C" class="variant">
+
+  <!-- Child View -->
+  <div class="child-view active" data-view="child">
+    <div class="min-h-screen flex flex-col items-center justify-center px-4 py-8">
+      <!-- Progress segments -->
+      <div class="flex gap-1 mb-4">
+        <div class="progress-seg w-8 h-3 bg-[#2ECC71]"></div>
+        <div class="progress-seg w-8 h-3 bg-[#2ECC71]"></div>
+        <div class="progress-seg w-8 h-3 bg-[#F39C12]"></div>
+        <div class="progress-seg w-8 h-3 bg-white"></div>
+        <div class="progress-seg w-8 h-3 bg-white"></div>
+        <div class="progress-seg w-8 h-3 bg-white"></div>
+        <div class="progress-seg w-8 h-3 bg-white"></div>
+      </div>
+      <p class="text-white font-bold text-lg mb-6 drop-shadow">Opdracht 3 van 7</p>
+
+      <!-- Problem bubble -->
+      <div class="bubble px-14 py-8 text-center mb-10">
+        <p class="text-6xl font-bold text-[#2C1810]">7 × 8 = ?</p>
+      </div>
+
+      <!-- Answer display -->
+      <div class="mb-4 h-12 flex items-center">
+        <span class="text-4xl font-bold text-white bg-[#2C1810] rounded-full w-16 h-16 flex items-center justify-center">56</span>
+      </div>
+
+      <!-- Keypad: colorful round buttons -->
+      <div class="grid grid-cols-3 gap-4 mb-6">
+        <button class="keypad-btn w-16 h-16 bg-[#FF6B6B] text-white">1</button>
+        <button class="keypad-btn w-16 h-16 bg-[#F39C12] text-white">2</button>
+        <button class="keypad-btn w-16 h-16 bg-[#2ECC71] text-white">3</button>
+        <button class="keypad-btn w-16 h-16 bg-[#3498DB] text-white">4</button>
+        <button class="keypad-btn w-16 h-16 bg-[#9B59B6] text-white">5</button>
+        <button class="keypad-btn w-16 h-16 bg-[#FF6B6B] text-white">6</button>
+        <button class="keypad-btn w-16 h-16 bg-[#F39C12] text-white">7</button>
+        <button class="keypad-btn w-16 h-16 bg-[#2ECC71] text-white">8</button>
+        <button class="keypad-btn w-16 h-16 bg-[#3498DB] text-white">9</button>
+        <button class="keypad-btn col-span-3 w-auto h-14 bg-[#2C1810] text-white text-xl" style="border-radius:20px;">Kijk na!</button>
+      </div>
+
+      <!-- Grade buttons -->
+      <div class="hidden" id="grade-C">
+        <p class="text-white font-bold text-xl mb-3 drop-shadow">Hoe ging het?</p>
+        <div class="flex gap-3 flex-wrap justify-center">
+          <button class="grade-btn px-5 py-3 bg-[#FF6B6B] text-white">😞 Opnieuw</button>
+          <button class="grade-btn px-5 py-3 bg-[#F39C12] text-white">😬 Moeilijk</button>
+          <button class="grade-btn px-5 py-3 bg-[#2ECC71] text-white">😊 Goed</button>
+          <button class="grade-btn px-5 py-3 bg-[#3498DB] text-white">🤩 Makkelijk</button>
+        </div>
+      </div>
+
+      <!-- Bottom actions -->
+      <div class="flex gap-4 mt-4 items-center">
+        <button class="text-white font-semibold drop-shadow underline">Stoppen</button>
+        <button class="text-3xl" onclick="toggleView('C','parent')">⚙️</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Parent View -->
+  <div class="parent-view" data-view="parent">
+    <div class="min-h-screen p-6 max-w-2xl mx-auto">
+      <div class="parent-card p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-bold text-[#2C1810]">Voortgang</h2>
+          <button class="text-2xl font-bold text-[#2C1810]" onclick="toggleView('C','child')">✕</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-3 gap-3 mb-6">
+          <div class="text-center p-4 bg-[#FFE5B4] rounded-2xl border-2 border-[#F39C12]">
+            <p class="text-3xl font-bold text-[#2C1810]">42<span class="text-lg">/100</span></p>
+            <p class="text-sm font-semibold text-[#8B6914]">Beheerst</p>
+          </div>
+          <div class="text-center p-4 bg-[#FFE5B4] rounded-2xl border-2 border-[#F39C12]">
+            <p class="text-3xl font-bold text-[#E67E22]">5</p>
+            <p class="text-sm font-semibold text-[#8B6914]">Dagen reeks</p>
+          </div>
+          <div class="text-center p-4 bg-[#FFE5B4] rounded-2xl border-2 border-[#F39C12]">
+            <p class="text-3xl font-bold text-[#2C1810]">12</p>
+            <p class="text-sm font-semibold text-[#8B6914]">Vandaag</p>
+          </div>
+        </div>
+
+        <!-- Table accuracy -->
+        <h3 class="text-lg font-bold text-[#2C1810] mb-3">Tafels</h3>
+        <div class="space-y-3">
+          <div class="flex items-center gap-3"><span class="font-bold w-8 text-[#2C1810]">1×</span><div class="flex-1 h-5 bg-gray-200 rounded-full overflow-hidden border-2 border-gray-300"><div class="h-full bg-[#2ECC71]" style="width:95%"></div></div><span class="font-bold w-10 text-right">95%</span></div>
+          <div class="flex items-center gap-3"><span class="font-bold w-8 text-[#2C1810]">2×</span><div class="flex-1 h-5 bg-gray-200 rounded-full overflow-hidden border-2 border-gray-300"><div class="h-full bg-[#2ECC71]" style="width:90%"></div></div><span class="font-bold w-10 text-right">90%</span></div>
+          <div class="flex items-center gap-3"><span class="font-bold w-8 text-[#2C1810]">7×</span><div class="flex-1 h-5 bg-gray-200 rounded-full overflow-hidden border-2 border-gray-300"><div class="h-full bg-[#F39C12]" style="width:65%"></div></div><span class="font-bold w-10 text-right">65%</span></div>
+          <div class="flex items-center gap-3"><span class="font-bold w-8 text-[#2C1810]">8×</span><div class="flex-1 h-5 bg-gray-200 rounded-full overflow-hidden border-2 border-gray-300"><div class="h-full bg-[#FF6B6B]" style="width:40%"></div></div><span class="font-bold w-10 text-right">40%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table selection -->
+  <div class="hidden" id="tables-C">
+    <div class="min-h-screen flex flex-col items-center justify-center px-4">
+      <div class="bubble px-10 py-6 text-center mb-8">
+        <h2 class="text-3xl font-bold text-[#2C1810]">Kies je tafels!</h2>
+      </div>
+      <div class="flex gap-3 flex-wrap justify-center mb-8 max-w-sm">
+        <button class="table-toggle keypad-btn w-14 h-14 bg-[#FF6B6B] text-white">1</button>
+        <button class="table-toggle keypad-btn w-14 h-14 bg-[#F39C12] text-white">2</button>
+        <button class="table-toggle keypad-btn w-14 h-14 bg-[#2ECC71] text-white">3</button>
+        <button class="table-toggle keypad-btn w-14 h-14 bg-gray-300 text-gray-500">4</button>
+        <button class="table-toggle keypad-btn w-14 h-14 bg-[#3498DB] text-white">5</button>
+        <button class="table-toggle keypad-btn w-14 h-14 bg-[#9B59B6] text-white">6</button>
+        <button class="table-toggle keypad-btn w-14 h-14 bg-[#FF6B6B] text-white">7</button>
+        <button class="table-toggle keypad-btn w-14 h-14 bg-[#F39C12] text-white">8</button>
+        <button class="table-toggle keypad-btn w-14 h-14 bg-[#2ECC71] text-white">9</button>
+        <button class="table-toggle keypad-btn w-14 h-14 bg-[#3498DB] text-white">10</button>
+      </div>
+      <button class="keypad-btn w-auto px-12 h-16 bg-[#2C1810] text-white text-2xl" style="border-radius:24px;">Start!</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- FLOATING SWITCHER                          -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="switcher">
+  <button onclick="switchVariant('prev')" title="Vorige (←)">◀</button>
+  <span class="variant-label" id="variant-label">A — Treasure Map</span>
+  <button onclick="switchVariant('next')" title="Volgende (→)">▶</button>
+</div>
+
+<script>
+  const variants = [
+    { key: 'A', name: 'A — Treasure Map (Storybook)' },
+    { key: 'B', name: 'B — Ship\'s Helm (Navigation)' },
+    { key: 'C', name: 'C — Pirate Cove (Playful)' }
+  ];
+  let currentIdx = 0;
+
+  function getVariantFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    const v = params.get('variant');
+    const idx = variants.findIndex(x => x.key === v);
+    return idx >= 0 ? idx : 0;
+  }
+
+  function switchVariant(dir) {
+    if (dir === 'prev') currentIdx = (currentIdx - 1 + variants.length) % variants.length;
+    else if (dir === 'next') currentIdx = (currentIdx + 1) % variants.length;
+    else if (typeof dir === 'number') currentIdx = dir;
+    render();
+    const url = new URL(window.location);
+    url.searchParams.set('variant', variants[currentIdx].key);
+    window.history.replaceState({}, '', url);
+  }
+
+  function render() {
+    document.querySelectorAll('.variant').forEach(el => el.classList.remove('active'));
+    document.getElementById('variant-' + variants[currentIdx].key).classList.add('active');
+    document.getElementById('variant-label').textContent = variants[currentIdx].name;
+  }
+
+  function toggleView(variantKey, view) {
+    const variant = document.getElementById('variant-' + variantKey);
+    variant.querySelectorAll('.child-view, .parent-view').forEach(el => el.classList.remove('active'));
+    variant.querySelector('[data-view="' + view + '"]').classList.add('active');
+  }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowLeft') switchVariant('prev');
+    if (e.key === 'ArrowRight') switchVariant('next');
+  });
+
+  // Init
+  currentIdx = getVariantFromURL();
+  render();
+</script>
+</body>
+</html>
