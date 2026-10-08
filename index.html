@@ -603,6 +603,12 @@
         updateAnswerDisplay();
       }
 
+      function removeDigit() {
+        if (answerChecked) return;
+        enteredDigits = enteredDigits.slice(0, -1);
+        updateAnswerDisplay();
+      }
+
       function setKeypadEnabled(enabled) {
         var buttons = document.querySelectorAll('#view-quiz .keypad-digit, #btn-check');
         Array.prototype.forEach.call(buttons, function (btn) {
@@ -690,8 +696,31 @@
         document.getElementById('btn-check').addEventListener('click', checkAnswer);
       }
 
+      // ── Fysiek toetsenbord ──
+      function initPhysicalKeyboard() {
+        document.addEventListener('keydown', function (e) {
+          var quizView = document.getElementById('view-quiz');
+          if (!quizView || quizView.classList.contains('hidden')) return;
+          // Negeer toetsaanslagen in invoervelden
+          var tag = (e.target && e.target.tagName) || '';
+          if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+          if (e.key >= '0' && e.key <= '9') {
+            e.preventDefault();
+            addDigit(e.key);
+          } else if (e.key === 'Backspace') {
+            e.preventDefault();
+            removeDigit();
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            checkAnswer();
+          }
+        });
+      }
+
       // ── Init ──
       initKeypad();
+      initPhysicalKeyboard();
 
       // Exposeer renderCurrentCard voor ticket 03's startknop en ticket 05
       App.renderQuizCard = renderCurrentCard;
