@@ -705,6 +705,20 @@
           var tag = (e.target && e.target.tagName) || '';
           if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
+          // Zelfbeoordeling (ticket 05): 1-4 = Opnieuw/Moeilijk/Goed/Makkelijk,
+          // alleen actief nadat het antwoord is gecontroleerd (knoppen zichtbaar)
+          if (e.key >= '1' && e.key <= '4') {
+            var gradesEl = document.getElementById('quiz-grades');
+            if (gradesEl && !gradesEl.classList.contains('hidden')) {
+              var gradeBtn = document.querySelector('#quiz-grades .grade-btn[data-grade="' + e.key + '"]');
+              if (gradeBtn) {
+                e.preventDefault();
+                gradeBtn.click();
+              }
+              return;
+            }
+          }
+
           if (e.key >= '0' && e.key <= '9') {
             e.preventDefault();
             addDigit(e.key);
