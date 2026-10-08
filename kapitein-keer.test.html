@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kapitein Keer — FSRS v6 tests</title>
+
+  <!-- The pure FSRS v6 port under test (same file the app loads) -->
+  <script src="fsrs.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px 16px;
+      font-family: 'Fredoka', system-ui, sans-serif;
+      background-color: #87CEEB;
+      background-image:
+        radial-gradient(circle at 15% 15%, rgba(255, 255, 255, 0.30) 0%, transparent 30%),
+        radial-gradient(circle at 85% 85%, rgba(255, 229, 180, 0.40) 0%, transparent 40%);
+      color: #2C1810;
+    }
+    main { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 2rem; font-weight: 700; text-align: center; }
+    #summary {
+      text-align: center;
+      font-size: 1.25rem;
+      font-weight: 600;
+      padding: 10px 16px;
+      border: 4px solid #2C1810;
+      border-radius: 16px;
+      background: #FFFFFF;
+      box-shadow: 0 4px 0 rgba(44, 24, 16, 0.15);
+    }
+    #summary.pass { background: #2ECC71; color: #FFFFFF; }
+    #summary.fail { background: #FF6B6B; color: #FFFFFF; }
+    #results { list-style: none; margin: 24px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+    #results li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #FFFFFF;
+      border: 4px solid #2C1810;
+      border-radius: 16px;
+      box-shadow: 0 4px 0 rgba(44, 24, 16, 0.15);
+      padding: 12px 16px;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+    #results li .indicator {
+      flex: none;
+      width: 22px;
+      height: 22px;
+      margin-top: 1px;
+      border-radius: 50%;
+      border: 3px solid #2C1810;
+    }
+    #results li.pass .indicator { background: #2ECC71; }
+    #results li.fail .indicator { background: #FF6B6B; }
+    #results li.fail { background: #FFF0F0; }
+    #results li .error { display: block; font-size: 0.85rem; color: #B03A3A; margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+  <main>
+    <h1>Kapitein Keer — FSRS v6 tests</h1>
+    <p id="summary">Bezig…</p>
+    <ul id="results"></ul>
+  </main>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var FSRS = window.FSRS;
+      var T0 = new Date('2026-10-08T10:00:00Z');
+      var results = [];
+
+      function test(name, fn) {
+        try {
+          fn();
+          results.push({ name: name, ok: true });
+        } catch (e) {
+          results.push({ name: name, ok: false, error: (e && e.message) ? e.message : String(e) });
+        }
+      }
+
+      function assert(condition, message) {
+        if (!condition) {
+          throw new Error(message || 'Assertion failed');
+        }
+      }
+
+      function assertClose(actual, expected, tolerance, label) {
+        if (Math.abs(actual - expected) > tolerance) {
+          throw new Error((label || 'waarde') + ': verwachtte ≈ ' + expected + ', kreeg ' + actual +
+            ' (tolerantie ' + tolerance + ')');
+        }
+      }
+
+      // ── 1–4: Initieel schema voor een nieuwe kaart, per grade ──
+
+      test('Initieel schema: nieuwe kaart graded "Goed" → stabiliteit ≈ 2.3065', function () {
+        var card = FSRS.schedule(FSRS.Card.initial(), FSRS.Grade.GOOD, T0);
+        assert(FSRS.isDSMemoryModel(card.memoryModel), 'memoryModel moet een DSMemoryModel zijn');
+        assertClose(card.memoryModel.stability, 2.3065, 1e-9, 'stability');
+        assertClose(card.memoryModel.difficulty, 2.118103970459015, 1e-6, 'difficulty (Java-referentie)');
+        assert(card.repetitions === 1, 'repetitions moet 1 zijn');
+        assert(card.lapses === 0, 'lapses moet 0 zijn');
+        // Bij retentie 0.9 is het interval = stabiliteit → next review over 2.3065 dagen
+        var expectedSeconds = Math.round(2.3065 * 86400);
+        assert(card.nextReviewDate.getTime() - T0.getTime() === expectedSeconds * 1000,
+          'nextReviewDate moet now + interval zijn');
+        assert(card.previousReviewDate.getTime() === T0.getTime(), 'previousReviewDate moet now zijn');
+      });
+
+      test('Initieel schema: nieuwe kaart graded "Makkelijk" → stabiliteit ≈ 8.2956', function () {
+        var card = FSRS.schedule(FSRS.Card.initial(), FSRS.Grade.EASY, T0);
+        assertClose(card.memoryModel.stability, 8.2956, 1e-9, 'stability');
+        assertClose(card.memoryModel.difficulty, 0.0, 1e-9, 'difficulty (Java-referentie)');
+        assert(card.repetitions === 1 && card.lapses === 0, 'repetitions=1, lapses=0');
+        var expectedSeconds = Math.round(8.2956 * 86400);
+        assert(card.nextReviewDate.getTime() - T0.getTime() === expectedSeconds * 1000,
+          'nextReviewDate moet now + interval zijn');
+        // Referentiewaarde uit de Java-testsuite: Easy → Easy (zelfde dag) → 13.046064691177456
+        var sameDay = FSRS.schedule(card, FSRS.Grade.EASY, new Date(T0.getTime() + 3600 * 1000));
+        assertClose(sameDay.memoryModel.stability, 13.046064691177456, 1e-6,
+          'korte-termijn Easy→Easy (Java-referentie)');
+      });
+
+      test('Initieel schema: nieuwe kaart graded "Opnieuw" → stabiliteit ≈ 0.212', function () {
+        var card = FSRS.schedule(FSRS.Card.initial(), FSRS.Grade.AGAIN, T0);
+        assertClose(card.memoryModel.stability, 0.212, 1e-9, 'stability');
+        assertClose(card.memoryModel.difficulty, 6.4133, 1e-9, 'difficulty = W4 (Java-referentie)');
+        assert(card.repetitions === 1, 'repetitions moet 1 zijn');
+        assert(card.lapses === 1, 'lapses moet 1 zijn na "Opnieuw"');
+        var expectedSeconds = Math.round(0.212 * 86400);
+        assert(card.nextReviewDate.getTime() - T0.getTime() === expectedSeconds * 1000,
+          'nextReviewDate moet now + interval zijn');
+      });
+
+      test('Initieel schema: nieuwe kaart graded "Moeilijk" → stabiliteit ≈ 1.2931', function () {
+        var card = FSRS.schedule(FSRS.Card.initial(), FSRS.Grade.HARD, T0);
+        assertClose(card.memoryModel.stability, 1.2931, 1e-9, 'stability');
+        assertClose(card.memoryModel.difficulty, 5.112170705601055, 1e-6, 'difficulty (Java-referentie)');
+        assert(card.repetitions === 1 && card.lapses === 0, 'repetitions=1, lapses=0');
+        var expectedSeconds = Math.round(1.2931 * 86400);
+        assert(card.nextReviewDate.getTime() - T0.getTime() === expectedSeconds * 1000,
+          'nextReviewDate moet now + interval zijn');
+      });
+
+      // ── 5: Intervalberekening ──
+
+      test('Intervalberekening: stability / correctionFactor × desiredRetentionFactor bij retentie 0.9', function () {
+        var model = FSRS.DSMemoryModel.create(5.0, 7.5);
+        var correctionFactor = Math.pow(0.9, -1 / FSRS.W20) - 1;
+        var desiredRetentionFactor = Math.pow(0.9, -1 / FSRS.W20) - 1;
+        var expected = 7.5 / correctionFactor * desiredRetentionFactor;
+        assertClose(FSRS.calculateInterval(model, 0.9), expected, 1e-12, 'interval bij retentie 0.9');
+        // Bij retentie 0.9 is correctionFactor = desiredRetentionFactor → interval = stability
+        assertClose(FSRS.calculateInterval(model, 0.9), 7.5, 1e-9, 'interval bij retentie 0.9 = stability');
+        // Een andere retentie volgt dezelfde formule en geeft een ander interval
+        var desiredRetentionFactor80 = Math.pow(0.8, -1 / FSRS.W20) - 1;
+        assertClose(FSRS.calculateInterval(model, 0.8), 7.5 / correctionFactor * desiredRetentionFactor80,
+          1e-12, 'interval bij retentie 0.8');
+        assert(FSRS.calculateInterval(model, 0.8) > FSRS.calculateInterval(model, 0.9),
+          'lagere retentie → langer interval (meer vergeten toegestaan)');
+      });
+
+      // ── 6: Stabiliteitsgroei bij herhaalde "Goed" ──
+
+      test('Stabiliteitsgroei: herhaalde "Goed"-beoordelingen geven stijgende stabiliteit', function () {
+        var now = T0;
+        var card = FSRS.schedule(FSRS.Card.initial(), FSRS.Grade.GOOD, now);
+        var previousStability = card.memoryModel.stability;
+        for (var i = 0; i < 5; i++) {
+          now = card.nextReviewDate; // nakijken op het geplande moment
+          card = FSRS.schedule(card, FSRS.Grade.GOOD, now);
+          var stability = card.memoryModel.stability;
+          assert(stability > previousStability,
+            'stability moet stijgen (' + previousStability + ' → ' + stability + ')');
+          previousStability = stability;
+        }
+        assert(previousStability > 2.3065, 'eindstabiliteit moet boven de initiele 2.3065 liggen');
+      });
+
+      // ── 7: Verval bij "Opnieuw" ──
+
+      test('Verval: "Opnieuw" verlaagt de stabiliteit en verhoogt het aantal lapses', function () {
+        var card = FSRS.schedule(FSRS.Card.initial(), FSRS.Grade.GOOD, T0);
+        var stabilityBefore = card.memoryModel.stability;
+        var difficultyBefore = card.memoryModel.difficulty;
+        // 3 dagen later nakijken (kaart was na ~2.3 dagen gepland → R < 0.9)
+        var threeDaysLater = new Date(T0.getTime() + 3 * 86400 * 1000);
+        var lapsed = FSRS.schedule(card, FSRS.Grade.AGAIN, threeDaysLater);
+        assert(lapsed.memoryModel.stability < stabilityBefore,
+          'stability moet dalen na "Opnieuw" (' + stabilityBefore + ' → ' + lapsed.memoryModel.stability + ')');
+        assert(lapsed.lapses === card.lapses + 1, 'lapses moet met 1 stijgen');
+        assert(lapsed.repetitions === card.repetitions + 1, 'repetitions moet met 1 stijgen');
+        assert(lapsed.memoryModel.difficulty > difficultyBefore,
+          'difficulty moet stijgen na "Opnieuw"');
+        // Ook in de korte-termijnfase verlaagt "Opnieuw" de stabiliteit
+        var sameDay = FSRS.schedule(card, FSRS.Grade.AGAIN, new Date(T0.getTime() + 3600 * 1000));
+        assert(sameDay.memoryModel.stability < stabilityBefore,
+          'korte-termijn "Opnieuw" moet de stabiliteit ook verlagen');
+        assert(sameDay.lapses === 1, 'korte-termijn "Opnieuw" → lapses = 1');
+      });
+
+      // ── 8: Korte-termijnschema (< 24 uur) ──
+
+      test('Korte-termijnschema: review binnen 24 uur gebruikt de korte-termijnformule', function () {
+        var card = FSRS.schedule(FSRS.Card.initial(), FSRS.Grade.GOOD, T0);
+        // Binnen 24 uur → korte-termijnfase
+        var oneHourLater = new Date(T0.getTime() + 3600 * 1000);
+        assert(FSRS.isShortTermLearnPhase(card, oneHourLater), 'review < 24u moet korte-termijnfase zijn');
+        var shortTerm = FSRS.schedule(card, FSRS.Grade.GOOD, oneHourLater);
+        var expectedShortTerm = FSRS.nextShortTermStability(card.memoryModel, FSRS.Grade.GOOD);
+        assertClose(shortTerm.memoryModel.stability, expectedShortTerm, 1e-12,
+          'korte-termijn stabiliteit moet de korte-termijnformule volgen');
+        // De lange-termijnformule met t = 1/24 dag geeft een andere waarde
+        var longTermModel = FSRS.updateParameters(card.memoryModel, FSRS.Grade.GOOD, 1 / 24);
+        assert(Math.abs(shortTerm.memoryModel.stability - longTermModel.stability) > 1e-6,
+          'korte- en lange-termijnformule moeten verschillen');
+        // Na meer dan 24 uur schakelt de scheduler over op lange termijn
+        var twoDaysLater = new Date(T0.getTime() + 2 * 86400 * 1000);
+        assert(!FSRS.isShortTermLearnPhase(card, twoDaysLater), 'review > 24u moet lange-termijnfase zijn');
+        var longTerm = FSRS.schedule(card, FSRS.Grade.GOOD, twoDaysLater);
+        var expectedLongTerm = FSRS.updateParameters(card.memoryModel, FSRS.Grade.GOOD, 2);
+        assertClose(longTerm.memoryModel.stability, expectedLongTerm.stability, 1e-9,
+          'lange-termijn stabiliteit moet de lange-termijnformule volgen');
+      });
+
+      // ── 9: Grade-waarden ──
+
+      test('Grade-waarden: Opnieuw=1, Moeilijk=2, Goed=3, Makkelijk=4', function () {
+        assert(FSRS.Grade.AGAIN === 1, 'AGAIN moet 1 zijn');
+        assert(FSRS.Grade.HARD === 2, 'HARD moet 2 zijn');
+        assert(FSRS.Grade.GOOD === 3, 'GOOD moet 3 zijn');
+        assert(FSRS.Grade.EASY === 4, 'EASY moet 4 zijn');
+        assert(FSRS.Grade.Again === 1 && FSRS.Grade.Hard === 2 &&
+          FSRS.Grade.Good === 3 && FSRS.Grade.Easy === 4, 'gemixte hoofdletter-aliassen');
+        assert(FSRS.gradeFromValue(3) === FSRS.Grade.GOOD, 'gradeFromValue(3)');
+        var threw = false;
+        try {
+          FSRS.gradeFromValue(5);
+        } catch (e) {
+          threw = true;
+        }
+        assert(threw, 'gradeFromValue(5) moet een fout gooien');
+      });
+
+      // ── 10: Initiële moeilijkheid ──
+
+      test('Initiële moeilijkheid: W4 − exp(W5·(g−1)) + 1, geklemd tussen 0 en 10', function () {
+        // g = 3 (Goed): W4 − exp(W5·2) + 1
+        assertClose(FSRS.initialDifficulty(FSRS.Grade.GOOD),
+          FSRS.W4 - Math.exp(FSRS.W5 * (3 - 1)) + 1, 1e-12, 'formule voor g=3');
+        assertClose(FSRS.initialDifficulty(FSRS.Grade.GOOD), 2.118103970459015, 1e-6,
+          'Java-referentie g=3');
+        assertClose(FSRS.initialDifficulty(FSRS.Grade.HARD), 5.112170705601055, 1e-6,
+          'Java-referentie g=2');
+        // g = 1 (Opnieuw): W4 − exp(0) + 1 = W4
+        assertClose(FSRS.initialDifficulty(FSRS.Grade.AGAIN), FSRS.W4, 1e-12, 'formule voor g=1');
+        // g = 4 (Makkelijk): W4 − exp(W5·3) + 1 < 0 → geklemd op 0
+        assert(FSRS.initialDifficulty(FSRS.Grade.EASY) === 0, 'Easy moet op 0 klemmen');
+        // Alle grades blijven binnen [0, 10]
+        [FSRS.Grade.AGAIN, FSRS.Grade.HARD, FSRS.Grade.GOOD, FSRS.Grade.EASY].forEach(function (g) {
+          var d = FSRS.initialDifficulty(g);
+          assert(d >= 0 && d <= 10, 'difficulty moet binnen [0, 10] liggen voor grade ' + g);
+        });
+      });
+
+      // ── Render resultaten ──
+
+      function render() {
+        var passed = results.filter(function (r) { return r.ok; }).length;
+        var summary = document.getElementById('summary');
+        var allPassed = passed === results.length;
+        summary.textContent = passed + ' / ' + results.length + ' tests geslaagd' +
+          (allPassed ? ' — alles in orde!' : ' — er zijn fouten!');
+        summary.className = allPassed ? 'pass' : 'fail';
+
+        var list = document.getElementById('results');
+        results.forEach(function (r, i) {
+          var li = document.createElement('li');
+          li.className = r.ok ? 'pass' : 'fail';
+          var indicator = document.createElement('span');
+          indicator.className = 'indicator';
+          li.appendChild(indicator);
+          var text = document.createElement('span');
+          text.textContent = (i + 1) + '. ' + r.name;
+          li.appendChild(text);
+          if (!r.ok) {
+            var error = document.createElement('span');
+            error.className = 'error';
+            error.textContent = 'FOUT: ' + r.error;
+            li.appendChild(error);
+          }
+          list.appendChild(li);
+        });
+      }
+
+      render();
+    })();
+  </script>
+</body>
+</html>

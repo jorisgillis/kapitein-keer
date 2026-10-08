@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kapitein Keer — Tafels oefenen</title>
+
+  <!-- Tailwind CSS via CDN (no build step) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            sky: '#87CEEB',    // achtergrond
+            coral: '#FF6B6B',  // primaire accentkleur
+            sand: '#FFE5B4',   // statistiektegels
+            palm: '#2ECC71',   // succes
+            sunset: '#F39C12', // waarschuwing
+            ink: '#2C1810',    // randen en tekst
+            white: '#FFFFFF'   // kaarten
+          },
+          fontFamily: {
+            fredoka: ['Fredoka', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Fredoka via Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Fredoka', sans-serif;
+      background-color: #87CEEB;
+      background-image:
+        radial-gradient(circle at 15% 15%, rgba(255, 255, 255, 0.30) 0%, transparent 30%),
+        radial-gradient(circle at 85% 85%, rgba(255, 229, 180, 0.40) 0%, transparent 40%);
+    }
+    /* Speech bubble met inkt-staart */
+    .bubble {
+      position: relative;
+      background: #FFFFFF;
+      border: 4px solid #2C1810;
+      border-radius: 24px;
+      box-shadow: 0 6px 0 rgba(44, 24, 16, 0.15);
+    }
+    .bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -18px;
+      left: 48px;
+      border: 11px solid transparent;
+      border-top-color: #2C1810;
+    }
+    /* Indruk-schaduweffect voor knoppen */
+    .btn-press {
+      box-shadow: 0 6px 0 rgba(44, 24, 16, 0.25);
+      transition: transform 0.08s, box-shadow 0.08s;
+    }
+    .btn-press:active {
+      transform: translateY(6px);
+      box-shadow: 0 0 0 rgba(44, 24, 16, 0.25);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center px-4 py-10">
+
+  <main class="flex flex-col items-center gap-8 w-full max-w-lg">
+
+    <!-- Speech bubble met app-titel -->
+    <div class="bubble px-10 py-8 text-center w-full">
+      <p class="text-sunset font-semibold text-lg tracking-wide">Tafelavontuur</p>
+      <h1 class="text-5xl sm:text-6xl font-bold text-ink leading-tight">Kapitein Keer</h1>
+      <p class="text-ink/70 font-medium text-xl mt-2">Klaar om je tafels te oefenen, kapitein?</p>
+    </div>
+
+    <!-- Statistiektegels (placeholder) -->
+    <div class="flex gap-4">
+      <div class="bg-sand border-4 border-ink rounded-2xl px-6 py-3 text-center shadow-[0_4px_0_rgba(44,24,16,0.15)]">
+        <p class="text-3xl font-bold text-ink">10</p>
+        <p class="text-sm font-semibold text-ink/70">Tafels</p>
+      </div>
+      <div class="bg-sand border-4 border-ink rounded-2xl px-6 py-3 text-center shadow-[0_4px_0_rgba(44,24,16,0.15)]">
+        <p class="text-3xl font-bold text-ink">100</p>
+        <p class="text-sm font-semibold text-ink/70">Sommen</p>
+      </div>
+    </div>
+
+    <!-- Startknop (placeholder) -->
+    <button type="button" class="btn-press bg-coral text-white text-3xl font-bold px-14 py-4 rounded-full border-4 border-ink">
+      Start!
+    </button>
+
+    <!-- Pirate Cove-palet -->
+    <div class="flex flex-wrap justify-center gap-4 mt-2" aria-label="Pirate Cove kleurenpalet">
+      <div class="flex flex-col items-center gap-1">
+        <span class="w-10 h-10 rounded-full border-4 border-ink bg-sky"></span>
+        <span class="text-xs font-semibold text-white drop-shadow">Sky</span>
+      </div>
+      <div class="flex flex-col items-center gap-1">
+        <span class="w-10 h-10 rounded-full border-4 border-ink bg-coral"></span>
+        <span class="text-xs font-semibold text-white drop-shadow">Coral</span>
+      </div>
+      <div class="flex flex-col items-center gap-1">
+        <span class="w-10 h-10 rounded-full border-4 border-ink bg-sand"></span>
+        <span class="text-xs font-semibold text-white drop-shadow">Sand</span>
+      </div>
+      <div class="flex flex-col items-center gap-1">
+        <span class="w-10 h-10 rounded-full border-4 border-ink bg-palm"></span>
+        <span class="text-xs font-semibold text-white drop-shadow">Palm</span>
+      </div>
+      <div class="flex flex-col items-center gap-1">
+        <span class="w-10 h-10 rounded-full border-4 border-ink bg-sunset"></span>
+        <span class="text-xs font-semibold text-white drop-shadow">Sunset</span>
+      </div>
+      <div class="flex flex-col items-center gap-1">
+        <span class="w-10 h-10 rounded-full border-4 border-ink bg-ink"></span>
+        <span class="text-xs font-semibold text-white drop-shadow">Ink</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FSRS v6 pure functions (test seam, geladen door index.html en kapitein-keer.test.html) -->
+  <script src="fsrs.js"></script>
+</body>
+</html>
