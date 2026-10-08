@@ -79,17 +79,24 @@
       <p class="text-ink/70 font-medium text-xl mt-2">Klaar om je tafels te oefenen, kapitein?</p>
     </div>
 
-    <!-- Statistiektegels (placeholder) -->
+    <!-- Statistiektegels -->
     <div class="flex gap-4">
       <div class="bg-sand border-4 border-ink rounded-2xl px-6 py-3 text-center shadow-[0_4px_0_rgba(44,24,16,0.15)]">
         <p class="text-3xl font-bold text-ink">10</p>
         <p class="text-sm font-semibold text-ink/70">Tafels</p>
       </div>
       <div class="bg-sand border-4 border-ink rounded-2xl px-6 py-3 text-center shadow-[0_4px_0_rgba(44,24,16,0.15)]">
-        <p class="text-3xl font-bold text-ink">100</p>
-        <p class="text-sm font-semibold text-ink/70">Sommen</p>
+        <p class="text-3xl font-bold text-ink" id="stat-mastered">0 / 100</p>
+        <p class="text-sm font-semibold text-ink/70">Beheerst</p>
+      </div>
+      <div class="bg-sand border-4 border-ink rounded-2xl px-6 py-3 text-center shadow-[0_4px_0_rgba(44,24,16,0.15)]">
+        <p class="text-3xl font-bold text-ink" id="stat-cards">100</p>
+        <p class="text-sm font-semibold text-ink/70">Kaarten</p>
       </div>
     </div>
+
+    <!-- Laadstatus (subtiel) -->
+    <p id="load-status" class="text-sm font-semibold text-white drop-shadow">Kaarten laden…</p>
 
     <!-- Startknop (placeholder) -->
     <button type="button" class="btn-press bg-coral text-white text-3xl font-bold px-14 py-4 rounded-full border-4 border-ink">
@@ -128,5 +135,162 @@
 
   <!-- FSRS v6 pure functions (test seam, geladen door index.html en kapitein-keer.test.html) -->
   <script src="fsrs.js"></script>
+
+  <!-- Kaartmodel + localStorage-persistentie (ticket 02) -->
+  <script>
+    (function () {
+      'use strict';
+
+      var FSRS = window.FSRS;
+
+      var STORAGE_KEY = 'kapitein-keer:cards';
+      var STREAK_KEY = 'kapitein-keer:streak';
+
+      // Module-level state: alle 100 kaarten, geladen bij het opstarten van de pagina.
+      var cards = [];
+
+      // ── Kaartinitialisatie ──
+
+      // Maakt de 100 kaart-objecten aan: tafels a=1..10, sommen b=1..10.
+      // Een nieuwe kaart is nog nooit beoordeeld: geen FSRS-status, seen: false.
+      function initCards() {
+        var result = [];
+        for (var a = 1; a <= 10; a++) {
+          for (var b = 1; b <= 10; b++) {
+            result.push({
+              fact: { a: a, b: b },
+              difficulty: null,
+              stability: null,
+              repetitions: 0,
+              lapses: 0,
+              nextReviewDate: null,
+              previousReviewDate: null,
+              seen: false
+            });
+          }
+        }
+        return result;
+      }
+
+      // ── Persistentie (kaarten) ──
+
+      function saveCards(list) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      }
+
+      // Leest de kaarten uit localStorage. Bij de eerste keer (of ongeldige data)
+      // worden 100 nieuwe kaarten aangemaakt en meteen opgeslagen.
+      function loadCards() {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          try {
+            var parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              return parsed;
+            }
+          } catch (e) {
+            // ongeldige JSON → opnieuw initialiseren
+          }
+        }
+        var fresh = initCards();
+        saveCards(fresh);
+        return fresh;
+      }
+
+      // ── Persistentie (reeks / streak) ──
+
+      function initStreak() {
+        return { lastPracticeDate: null, streak: 0 };
+      }
+
+      function saveStreak(streak) {
+        localStorage.setItem(STREAK_KEY, JSON.stringify(streak));
+      }
+
+      function loadStreak() {
+        var raw = localStorage.getItem(STREAK_KEY);
+        if (raw) {
+          try {
+            var parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object') {
+              return parsed;
+            }
+          } catch (e) {
+            // ongeldige JSON → opnieuw initialiseren
+          }
+        }
+        var fresh = initStreak();
+        saveStreak(fresh);
+        return fresh;
+      }
+
+      // ── Brugfuncties: app-kaart ↔ FSRS-kaart ──
+
+      // App-kaart → FSRS-kaart (datums als Date-objecten, memoryModel per seen-flag).
+      function appCardToFSRS(card) {
+        return {
+          memoryModel: card.seen
+            ? FSRS.DSMemoryModel.create(card.difficulty, card.stability)
+            : FSRS.NoMemoryModel.create(),
+          repetitions: card.repetitions,
+          lapses: card.lapses,
+          nextReviewDate: card.nextReviewDate ? new Date(card.nextReviewDate) : null,
+          previousReviewDate: card.previousReviewDate ? new Date(card.previousReviewDate) : null
+        };
+      }
+
+      // FSRS-kaart (na schedule) → app-kaart (datums als ISO-strings, fact behouden).
+      function fSRSMToAppCard(fsrsCard, fact) {
+        return {
+          fact: fact,
+          difficulty: fsrsCard.memoryModel.stability !== undefined ? fsrsCard.memoryModel.difficulty : null,
+          stability: fsrsCard.memoryModel.stability !== undefined ? fsrsCard.memoryModel.stability : null,
+          repetitions: fsrsCard.repetitions,
+          lapses: fsrsCard.lapses,
+          nextReviewDate: fsrsCard.nextReviewDate ? fsrsCard.nextReviewDate.toISOString() : null,
+          previousReviewDate: fsrsCard.previousReviewDate ? fsrsCard.previousReviewDate.toISOString() : null,
+          seen: true
+        };
+      }
+
+      // Beoordeelt een kaart met een grade en geeft de bijgewerkte app-kaart terug.
+      // Wordt door latere tickets gebruikt na elke oefenbeurt.
+      function applyGrade(card, grade) {
+        var fsrsCard = appCardToFSRS(card);
+        var scheduled = FSRS.schedule(fsrsCard, grade);
+        return fSRSMToAppCard(scheduled, card.fact);
+      }
+
+      // ── Statistieken (startscherm) ──
+
+      function refreshStats() {
+        var mastered = cards.filter(function (c) { return c.seen; }).length;
+        document.getElementById('stat-mastered').textContent = mastered + ' / 100';
+        document.getElementById('stat-cards').textContent = String(cards.length);
+        document.getElementById('load-status').textContent = cards.length + ' kaarten geladen';
+      }
+
+      // ── Init bij het laden van de pagina ──
+
+      cards = loadCards();
+      loadStreak();
+      refreshStats();
+
+      // Globale toegang voor latere tickets en tests.
+      window.App = {
+        get cards() { return cards; },
+        loadCards: loadCards,
+        saveCards: saveCards,
+        initCards: initCards,
+        appCardToFSRS: appCardToFSRS,
+        fSRSMToAppCard: fSRSMToAppCard,
+        applyGrade: applyGrade,
+        loadStreak: loadStreak,
+        saveStreak: saveStreak,
+        STORAGE_KEY: STORAGE_KEY,
+        STREAK_KEY: STREAK_KEY
+      };
+    })();
+  </script>
 </body>
 </html>
