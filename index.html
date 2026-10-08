@@ -66,20 +66,51 @@
       transform: translateY(6px);
       box-shadow: 0 0 0 rgba(44, 24, 16, 0.25);
     }
+    /* Views: slechts één tegelijk zichtbaar */
+    .view.hidden {
+      display: none;
+    }
   </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center px-4 py-10">
+<body class="min-h-screen">
 
-  <main class="flex flex-col items-center gap-8 w-full max-w-lg">
+  <!-- ── View: tafels kiezen (ticket 03) ── -->
+  <div id="view-tables" class="view relative min-h-screen w-full flex flex-col items-center justify-center gap-6 px-4 py-10">
 
-    <!-- Speech bubble met app-titel -->
-    <div class="bubble px-10 py-8 text-center w-full">
-      <p class="text-sunset font-semibold text-lg tracking-wide">Tafelavontuur</p>
-      <h1 class="text-5xl sm:text-6xl font-bold text-ink leading-tight">Kapitein Keer</h1>
-      <p class="text-ink/70 font-medium text-xl mt-2">Klaar om je tafels te oefenen, kapitein?</p>
+    <!-- Ouder-knop (gekoppeld in ticket 07) -->
+    <button type="button" id="btn-parent" aria-label="Ouder-dashboard"
+      class="btn-press absolute top-4 right-4 w-12 h-12 rounded-full bg-white border-4 border-ink text-2xl flex items-center justify-center">⚙️</button>
+
+    <!-- App-titel -->
+    <h1 class="text-white font-bold text-2xl drop-shadow">Kapitein Keer</h1>
+
+    <!-- Speech bubble met heading -->
+    <div class="bubble px-10 py-6 text-center">
+      <h2 class="text-3xl sm:text-4xl font-bold text-ink">Kies je tafels!</h2>
     </div>
 
-    <!-- Statistiektegels -->
+    <!-- Subheading -->
+    <p class="text-white font-semibold text-xl drop-shadow">Welke tafels wil je oefenen?</p>
+
+    <!-- Tafel-toggleknoppen 1–10 (standaard allemaal aan) -->
+    <div id="table-grid" class="flex gap-3 flex-wrap justify-center max-w-md" role="group" aria-label="Tafels">
+      <button type="button" class="table-toggle btn-press w-14 h-14 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#FF6B6B]" data-table="1" data-color="bg-[#FF6B6B]" aria-pressed="true">1</button>
+      <button type="button" class="table-toggle btn-press w-14 h-14 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#F39C12]" data-table="2" data-color="bg-[#F39C12]" aria-pressed="true">2</button>
+      <button type="button" class="table-toggle btn-press w-14 h-14 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#2ECC71]" data-table="3" data-color="bg-[#2ECC71]" aria-pressed="true">3</button>
+      <button type="button" class="table-toggle btn-press w-14 h-14 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#3498DB]" data-table="4" data-color="bg-[#3498DB]" aria-pressed="true">4</button>
+      <button type="button" class="table-toggle btn-press w-14 h-14 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#9B59B6]" data-table="5" data-color="bg-[#9B59B6]" aria-pressed="true">5</button>
+      <button type="button" class="table-toggle btn-press w-14 h-14 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#FF6B6B]" data-table="6" data-color="bg-[#FF6B6B]" aria-pressed="true">6</button>
+      <button type="button" class="table-toggle btn-press w-14 h-14 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#F39C12]" data-table="7" data-color="bg-[#F39C12]" aria-pressed="true">7</button>
+      <button type="button" class="table-toggle btn-press w-14 h-14 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#2ECC71]" data-table="8" data-color="bg-[#2ECC71]" aria-pressed="true">8</button>
+      <button type="button" class="table-toggle btn-press w-14 h-14 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#3498DB]" data-table="9" data-color="bg-[#3498DB]" aria-pressed="true">9</button>
+      <button type="button" class="table-toggle btn-press w-14 h-14 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#9B59B6]" data-table="10" data-color="bg-[#9B59B6]" aria-pressed="true">10</button>
+    </div>
+
+    <!-- Startknop -->
+    <button type="button" id="btn-start"
+      class="btn-press bg-ink text-white text-3xl font-bold px-14 py-4 rounded-full border-4 border-ink">Start!</button>
+
+    <!-- Statistiektegels (ticket 02) -->
     <div class="flex gap-4">
       <div class="bg-sand border-4 border-ink rounded-2xl px-6 py-3 text-center shadow-[0_4px_0_rgba(44,24,16,0.15)]">
         <p class="text-3xl font-bold text-ink">10</p>
@@ -97,41 +128,40 @@
 
     <!-- Laadstatus (subtiel) -->
     <p id="load-status" class="text-sm font-semibold text-white drop-shadow">Kaarten laden…</p>
+  </div>
 
-    <!-- Startknop (placeholder) -->
-    <button type="button" class="btn-press bg-coral text-white text-3xl font-bold px-14 py-4 rounded-full border-4 border-ink">
-      Start!
-    </button>
-
-    <!-- Pirate Cove-palet -->
-    <div class="flex flex-wrap justify-center gap-4 mt-2" aria-label="Pirate Cove kleurenpalet">
-      <div class="flex flex-col items-center gap-1">
-        <span class="w-10 h-10 rounded-full border-4 border-ink bg-sky"></span>
-        <span class="text-xs font-semibold text-white drop-shadow">Sky</span>
-      </div>
-      <div class="flex flex-col items-center gap-1">
-        <span class="w-10 h-10 rounded-full border-4 border-ink bg-coral"></span>
-        <span class="text-xs font-semibold text-white drop-shadow">Coral</span>
-      </div>
-      <div class="flex flex-col items-center gap-1">
-        <span class="w-10 h-10 rounded-full border-4 border-ink bg-sand"></span>
-        <span class="text-xs font-semibold text-white drop-shadow">Sand</span>
-      </div>
-      <div class="flex flex-col items-center gap-1">
-        <span class="w-10 h-10 rounded-full border-4 border-ink bg-palm"></span>
-        <span class="text-xs font-semibold text-white drop-shadow">Palm</span>
-      </div>
-      <div class="flex flex-col items-center gap-1">
-        <span class="w-10 h-10 rounded-full border-4 border-ink bg-sunset"></span>
-        <span class="text-xs font-semibold text-white drop-shadow">Sunset</span>
-      </div>
-      <div class="flex flex-col items-center gap-1">
-        <span class="w-10 h-10 rounded-full border-4 border-ink bg-ink"></span>
-        <span class="text-xs font-semibold text-white drop-shadow">Ink</span>
-      </div>
+  <!-- ── View: quiz (placeholder, ticket 04) ── -->
+  <div id="view-quiz" class="view hidden relative min-h-screen w-full flex flex-col items-center justify-center gap-6 px-4 py-10">
+    <p id="quiz-progress" class="text-white font-bold text-lg drop-shadow"></p>
+    <div class="bubble px-14 py-8 text-center">
+      <p id="quiz-fact" class="text-6xl font-bold text-ink"></p>
     </div>
+    <p class="text-white font-semibold drop-shadow">Quiz — komt eraan!</p>
+  </div>
 
-  </main>
+  <!-- ── View: viering (placeholder, ticket 06) ── -->
+  <div id="view-celebration" class="view hidden relative min-h-screen w-full flex flex-col items-center justify-center gap-6 px-4 py-10">
+    <div class="bubble px-10 py-6 text-center">
+      <h2 class="text-3xl font-bold text-ink">Goed gedaan!</h2>
+    </div>
+    <p class="text-white font-semibold text-xl drop-shadow">Viering — komt eraan!</p>
+  </div>
+
+  <!-- ── View: alles klaar (placeholder, ticket 06) ── -->
+  <div id="view-empty" class="view hidden relative min-h-screen w-full flex flex-col items-center justify-center gap-6 px-4 py-10">
+    <div class="bubble px-10 py-6 text-center">
+      <h2 class="text-3xl font-bold text-ink">Alles Klaar!</h2>
+    </div>
+    <p class="text-white font-semibold text-xl drop-shadow">Kom morgen terug!</p>
+  </div>
+
+  <!-- ── View: ouder-dashboard (placeholder, ticket 07) ── -->
+  <div id="view-parent" class="view hidden relative min-h-screen w-full flex flex-col items-center justify-center gap-6 px-4 py-10">
+    <div class="bubble px-10 py-6 text-center">
+      <h2 class="text-3xl font-bold text-ink">Voortgang</h2>
+    </div>
+    <p class="text-white font-semibold text-xl drop-shadow">Ouder-dashboard — komt eraan!</p>
+  </div>
 
   <!-- FSRS v6 pure functions (test seam, geladen door index.html en kapitein-keer.test.html) -->
   <script src="fsrs.js"></script>
@@ -290,6 +320,154 @@
         STORAGE_KEY: STORAGE_KEY,
         STREAK_KEY: STREAK_KEY
       };
+    })();
+  </script>
+
+  <!-- View-management + sessie bouwen (ticket 03) -->
+  <script>
+    (function () {
+      'use strict';
+
+      var App = window.App;
+
+      var VIEW_IDS = ['view-tables', 'view-quiz', 'view-celebration', 'view-empty', 'view-parent'];
+
+      // ── View-management ──
+
+      // Toont één view en verbergt alle andere.
+      function showView(viewId) {
+        VIEW_IDS.forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) {
+            el.classList.toggle('hidden', id !== viewId);
+          }
+        });
+      }
+
+      // ── Sessie bouwen ──
+
+      // Fisher-Yates shuffle. Geeft een nieuwe array terug (origineel blijft ongemoeid).
+      function shuffle(array) {
+        var result = array.slice();
+        for (var i = result.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var tmp = result[i];
+          result[i] = result[j];
+          result[j] = tmp;
+        }
+        return result;
+      }
+
+      // Bouwt een sessie uit de kaarten van de gekozen tafels:
+      // alle due kaarten (gezien én nextReviewDate <= nu), aangevuld met
+      // maximaal 10 nieuwe (nog niet geziene) kaarten, willekeurig geschud.
+      function buildSession(selectedTables, practiceAnyway) {
+        var now = new Date();
+
+        // 1. Filter op de gekozen tafels
+        var tableCards = App.cards.filter(function (card) {
+          return selectedTables.indexOf(card.fact.a) !== -1;
+        });
+
+        if (practiceAnyway) {
+          // Oefen toch: alle geziene kaarten van de gekozen tafels, max. 20
+          var seen = tableCards.filter(function (c) { return c.seen; });
+          return shuffle(seen).slice(0, 20);
+        }
+
+        // 2. Due kaarten: gezien én reviewdatum verstreken
+        var dueCards = tableCards.filter(function (card) {
+          return card.seen && card.nextReviewDate && new Date(card.nextReviewDate) <= now;
+        });
+
+        // 3. Nieuwe kaarten: nog nooit gezien, max. 10
+        var newCards = tableCards.filter(function (card) {
+          return !card.seen;
+        }).slice(0, 10);
+
+        // 4. Combineren en schudden
+        return shuffle(dueCards.concat(newCards));
+      }
+
+      // ── Sessie-status ──
+
+      var session = null;
+
+      // ── Tafel-toggleknoppen ──
+
+      // Alle tafels starten geselecteerd.
+      var selectedTables = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+      // Wisselt de visuele staat van één tafelknop (aan = kleur, uit = grijs).
+      function setTableSelected(btn, selected) {
+        var colorClass = btn.getAttribute('data-color');
+        if (selected) {
+          btn.classList.remove('bg-gray-300', 'text-gray-500');
+          btn.classList.add(colorClass, 'text-white');
+        } else {
+          btn.classList.remove(colorClass, 'text-white');
+          btn.classList.add('bg-gray-300', 'text-gray-500');
+        }
+        btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
+      }
+
+      function initTableToggles() {
+        var buttons = document.querySelectorAll('#table-grid .table-toggle');
+        Array.prototype.forEach.call(buttons, function (btn) {
+          btn.addEventListener('click', function () {
+            var table = Number(btn.getAttribute('data-table'));
+            var idx = selectedTables.indexOf(table);
+            if (idx === -1) {
+              selectedTables.push(table);
+              setTableSelected(btn, true);
+            } else {
+              selectedTables.splice(idx, 1);
+              setTableSelected(btn, false);
+            }
+          });
+        });
+      }
+
+      // ── Startknop ──
+
+      // Vult de quiz-placeholder met de eerste kaart van de sessie.
+      function renderQuizPlaceholder() {
+        var card = session.cards[session.currentIndex];
+        document.getElementById('quiz-fact').textContent =
+          card.fact.a + ' × ' + card.fact.b + ' = ?';
+        document.getElementById('quiz-progress').textContent =
+          'Opdracht ' + (session.currentIndex + 1) + ' van ' + session.cards.length;
+      }
+
+      function initStartButton() {
+        document.getElementById('btn-start').addEventListener('click', function () {
+          var cards = buildSession(selectedTables, false);
+          if (cards.length === 0) {
+            // Niets te oefenen → leeg state
+            showView('view-empty');
+            return;
+          }
+          session = { cards: cards, currentIndex: 0, selectedTables: selectedTables.slice() };
+          renderQuizPlaceholder();
+          showView('view-quiz');
+        });
+      }
+
+      // ── Init ──
+
+      initTableToggles();
+      initStartButton();
+      showView('view-tables');
+
+      // Globale toegang voor latere tickets en tests.
+      App.showView = showView;
+      App.buildSession = buildSession;
+      App.shuffle = shuffle;
+      App.setSession = function (s) { session = s; };
+      Object.defineProperty(App, 'session', {
+        get: function () { return session; },
+        configurable: true
+      });
     })();
   </script>
 </body>
