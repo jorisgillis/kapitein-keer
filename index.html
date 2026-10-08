@@ -182,29 +182,58 @@
     <button type="button" id="btn-stop" class="text-white font-semibold underline drop-shadow">Stoppen</button>
   </div>
 
-  <!-- ── View: viering (placeholder, ticket 06) ── -->
+  <!-- ── View: viering (ticket 06) ── -->
   <div id="view-celebration" class="view hidden relative min-h-screen w-full flex flex-col items-center justify-center gap-6 px-4 py-10">
+    <div class="text-8xl">🏴‍☠️</div>
     <div class="bubble px-10 py-6 text-center">
       <h2 class="text-3xl font-bold text-ink">Goed gedaan!</h2>
     </div>
-    <p class="text-white font-semibold text-xl drop-shadow">Viering — komt eraan!</p>
+    <p class="text-white font-semibold text-xl drop-shadow">Alle kaarten klaar!</p>
+    <p id="celebration-count" class="text-white font-semibold text-lg drop-shadow"></p>
     <button type="button" id="btn-celebration-back" class="btn-press bg-ink text-white text-xl font-bold px-10 py-3 rounded-full border-4 border-ink">Terug naar start</button>
   </div>
 
-  <!-- ── View: alles klaar (placeholder, ticket 06) ── -->
+  <!-- ── View: alles klaar (ticket 06) ── -->
   <div id="view-empty" class="view hidden relative min-h-screen w-full flex flex-col items-center justify-center gap-6 px-4 py-10">
     <div class="bubble px-10 py-6 text-center">
       <h2 class="text-3xl font-bold text-ink">Alles Klaar!</h2>
     </div>
     <p class="text-white font-semibold text-xl drop-shadow">Kom morgen terug!</p>
+    <div class="flex flex-col gap-4 items-center">
+      <button type="button" id="btn-practice-anyway" class="btn-press bg-ink text-white text-xl font-bold px-10 py-3 rounded-full border-4 border-ink">Oefen toch</button>
+      <button type="button" id="btn-empty-back" class="btn-press bg-white text-ink text-xl font-bold px-10 py-3 rounded-full border-4 border-ink">Terug naar start</button>
+    </div>
   </div>
 
-  <!-- ── View: ouder-dashboard (placeholder, ticket 07) ── -->
-  <div id="view-parent" class="view hidden relative min-h-screen w-full flex flex-col items-center justify-center gap-6 px-4 py-10">
-    <div class="bubble px-10 py-6 text-center">
-      <h2 class="text-3xl font-bold text-ink">Voortgang</h2>
+  <!-- ── View: ouder-dashboard (ticket 07) ── -->
+  <div id="view-parent" class="view hidden min-h-screen w-full px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+      <div class="bg-white border-4 border-ink rounded-3xl p-6 shadow-[0_6px_0_rgba(44,24,16,0.15)]">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-bold text-ink">Voortgang</h2>
+          <button type="button" id="btn-parent-back" class="text-2xl font-bold text-ink">✕</button>
+        </div>
+        <!-- Drie statistiektegels -->
+        <div class="grid grid-cols-3 gap-3 mb-6">
+          <div class="text-center p-4 bg-sand rounded-2xl border-2 border-sunset">
+            <p class="text-3xl font-bold text-ink" id="parent-mastered">0/100</p>
+            <p class="text-sm font-semibold text-ink/70">Beheerst</p>
+          </div>
+          <div class="text-center p-4 bg-sand rounded-2xl border-2 border-sunset">
+            <p class="text-3xl font-bold text-[#E67E22]" id="parent-streak">0</p>
+            <p class="text-sm font-semibold text-ink/70">Dagen reeks</p>
+          </div>
+          <div class="text-center p-4 bg-sand rounded-2xl border-2 border-sunset">
+            <p class="text-3xl font-bold text-ink" id="parent-due">0</p>
+            <p class="text-sm font-semibold text-ink/70">Vandaag</p>
+          </div>
+        </div>
+        <!-- Nauwkeurigheid per tafel -->
+        <h3 class="text-lg font-bold text-ink mb-3">Tafels</h3>
+        <div id="parent-tables" class="space-y-3"></div>
+      </div>
     </div>
-    <p class="text-white font-semibold text-xl drop-shadow">Ouder-dashboard — komt eraan!</p>
   </div>
 
   <!-- FSRS v6 pure functions (test seam, geladen door index.html en kapitein-keer.test.html) -->
@@ -802,6 +831,172 @@
       // ── Init ──
       initGradeButtons();
       initCelebrationBack();
+    })();
+  </script>
+
+  <!-- Viering, lege state, stoppen vroegtijdig, oefen-toch + ouder-dashboard (tickets 06 & 07) -->
+  <script>
+    (function () {
+      'use strict';
+      var App = window.App;
+
+      // ── Geselecteerde tafels uitlezen uit de toggle-knoppen ──
+      function getSelectedTables() {
+        var buttons = document.querySelectorAll('#table-grid .table-toggle');
+        var tables = [];
+        Array.prototype.forEach.call(buttons, function (btn) {
+          if (btn.getAttribute('aria-pressed') === 'true') {
+            tables.push(Number(btn.getAttribute('data-table')));
+          }
+        });
+        return tables;
+      }
+
+      // ── Viering: aantal geoefende kaarten tonen (ticket 06) ──
+      // Wrap App.showView zodat we de tekst kunnen bijwerken wanneer de viering verschijnt.
+      var originalShowView = App.showView;
+      App.showView = function (viewId) {
+        originalShowView(viewId);
+        if (viewId === 'view-celebration') {
+          var session = App.session;
+          var count = session ? session.cards.length : 0;
+          var el = document.getElementById('celebration-count');
+          if (el) {
+            el.textContent = 'Je hebt ' + count + ' kaarten geoefend!';
+          }
+        }
+      };
+
+      // ── Stoppen-knop op quiz-scherm (ticket 06) ──
+      var btnStop = document.getElementById('btn-stop');
+      if (btnStop) {
+        btnStop.addEventListener('click', function () {
+          // Sessie beëindigen — reeds beoordeelde kaarten zijn al opgeslagen (ticket 05)
+          App.setSession(null);
+          App.showView('view-tables');
+          App.refreshStats();
+        });
+      }
+
+      // ── Oefen toch (ticket 06) ──
+      var btnPracticeAnyway = document.getElementById('btn-practice-anyway');
+      if (btnPracticeAnyway) {
+        btnPracticeAnyway.addEventListener('click', function () {
+          var tables = getSelectedTables();
+          var cards = App.buildSession(tables, true);
+          if (cards.length === 0) {
+            // Geen enkele kaart ooit gezien — terug naar tafels
+            App.showView('view-tables');
+            return;
+          }
+          App.setSession({ cards: cards, currentIndex: 0, selectedTables: tables });
+          App.showView('view-quiz');
+          App.renderQuizCard();
+        });
+      }
+
+      // ── Terug naar start vanaf lege state (ticket 06) ──
+      var btnEmptyBack = document.getElementById('btn-empty-back');
+      if (btnEmptyBack) {
+        btnEmptyBack.addEventListener('click', function () {
+          App.showView('view-tables');
+        });
+      }
+
+      // ── Ouder-dashboard: statistieken berekenen (ticket 07) ──
+      function computeDashboardStats() {
+        var cards = App.cards;
+        var now = new Date();
+        var endOfToday = new Date(now);
+        endOfToday.setHours(23, 59, 59, 999);
+
+        // Beheerst: stabiliteit > 21 dagen
+        var mastered = cards.filter(function (c) {
+          return c.seen && c.stability !== null && c.stability > 21;
+        }).length;
+
+        // Reeks
+        var streakData = App.loadStreak();
+        var streak = streakData.streak || 0;
+
+        // Vandaag te oefenen: nextReviewDate <= einde van vandaag
+        var dueToday = cards.filter(function (c) {
+          return c.seen && c.nextReviewDate && new Date(c.nextReviewDate) <= endOfToday;
+        }).length;
+
+        // Nauwkeurigheid per tafel (1–10)
+        var tableStats = [];
+        for (var t = 1; t <= 10; t++) {
+          var tableCards = cards.filter(function (c) { return c.fact.a === t; });
+          var graded = tableCards.filter(function (c) { return c.seen && c.repetitions > 0; });
+          var totalReps = graded.reduce(function (sum, c) { return sum + c.repetitions; }, 0);
+          var totalLapses = graded.reduce(function (sum, c) { return sum + c.lapses; }, 0);
+          var accuracy = totalReps > 0
+            ? Math.round(Math.max(0, (totalReps - totalLapses) / totalReps * 100))
+            : 0;
+          tableStats.push({ table: t, accuracy: accuracy, graded: graded.length });
+        }
+
+        return { mastered: mastered, streak: streak, dueToday: dueToday, tableStats: tableStats };
+      }
+
+      // ── Ouder-dashboard: renderen (ticket 07) ──
+      function renderDashboard() {
+        var stats = computeDashboardStats();
+
+        document.getElementById('parent-mastered').textContent = stats.mastered + '/100';
+        document.getElementById('parent-streak').textContent = String(stats.streak);
+        document.getElementById('parent-due').textContent = String(stats.dueToday);
+
+        var container = document.getElementById('parent-tables');
+        container.innerHTML = '';
+
+        stats.tableStats.forEach(function (ts) {
+          var barColor = ts.accuracy > 80 ? '#2ECC71' : (ts.accuracy >= 50 ? '#F39C12' : '#FF6B6B');
+          var textColor = ts.accuracy > 80 ? 'text-palm' : (ts.accuracy >= 50 ? 'text-sunset' : 'text-coral');
+
+          var row = document.createElement('div');
+          row.className = 'flex items-center gap-3';
+          row.innerHTML =
+            '<span class="font-bold w-8 text-ink">' + ts.table + '×</span>' +
+            '<div class="flex-1 h-5 bg-gray-200 rounded-full overflow-hidden border-2 border-gray-300">' +
+              '<div class="h-full rounded-full" style="width:' + ts.accuracy + '%; background:' + barColor + ';"></div>' +
+            '</div>' +
+            '<span class="font-bold w-10 text-right ' + textColor + '">' + ts.accuracy + '%</span>';
+          container.appendChild(row);
+        });
+      }
+
+      // ── Ouder-dashboard: openen vanaf kind-weergave (ticket 07) ──
+      var previousView = 'view-tables';
+
+      function openParentDashboard(fromView) {
+        previousView = fromView;
+        renderDashboard();
+        App.showView('view-parent');
+      }
+
+      var btnParent = document.getElementById('btn-parent');
+      if (btnParent) {
+        btnParent.addEventListener('click', function () {
+          openParentDashboard('view-tables');
+        });
+      }
+
+      var btnParentQuiz = document.getElementById('btn-parent-quiz');
+      if (btnParentQuiz) {
+        btnParentQuiz.addEventListener('click', function () {
+          openParentDashboard('view-quiz');
+        });
+      }
+
+      // ── Ouder-dashboard: terug naar vorige kind-weergave (ticket 07) ──
+      var btnParentBack = document.getElementById('btn-parent-back');
+      if (btnParentBack) {
+        btnParentBack.addEventListener('click', function () {
+          App.showView(previousView);
+        });
+      }
     })();
   </script>
 </body>
