@@ -104,7 +104,7 @@
     <p class="text-white font-semibold text-xl drop-shadow">Welke tafels wil je oefenen?</p>
 
     <!-- Tafel-toggleknoppen 1–10 (standaard allemaal aan) -->
-    <div id="table-grid" class="flex gap-3 flex-wrap justify-center max-w-md" role="group" aria-label="Tafels">
+    <div id="table-grid" class="grid grid-cols-5 gap-3 justify-items-center max-w-md" role="group" aria-label="Tafels">
       <button type="button" class="table-toggle btn-press w-14 h-14 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#FF6B6B]" data-table="1" data-color="bg-[#FF6B6B]" aria-pressed="true">1</button>
       <button type="button" class="table-toggle btn-press w-14 h-14 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#F39C12]" data-table="2" data-color="bg-[#F39C12]" aria-pressed="true">2</button>
       <button type="button" class="table-toggle btn-press w-14 h-14 rounded-full border-4 border-ink font-bold text-2xl text-white bg-[#2ECC71]" data-table="3" data-color="bg-[#2ECC71]" aria-pressed="true">3</button>
@@ -134,6 +134,17 @@
       <div class="bg-sand border-4 border-ink rounded-2xl px-6 py-3 text-center shadow-[0_4px_0_rgba(44,24,16,0.15)]">
         <p class="text-3xl font-bold text-ink" id="stat-cards">100</p>
         <p class="text-sm font-semibold text-ink/70">Kaarten</p>
+      </div>
+    </div>
+
+    <!-- Schema: hoeveel kaarten per tafel te oefenen (vandaag / morgen / deze week) -->
+    <div class="bg-sand border-4 border-ink rounded-2xl px-6 py-4 shadow-[0_4px_0_rgba(44,24,16,0.15)]">
+      <p class="text-lg font-bold text-ink text-center mb-3">Wanneer oefenen?</p>
+      <div id="schedule-grid" class="grid grid-cols-5 gap-2 justify-items-center"></div>
+      <div class="flex gap-4 justify-center mt-3 text-sm font-semibold text-ink">
+        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-[#FF6B6B] border-2 border-ink"></span>vandaag</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-[#F39C12] border-2 border-ink"></span>morgen</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-[#3498DB] border-2 border-ink"></span>deze week</span>
       </div>
     </div>
 
@@ -384,11 +395,80 @@
         document.getElementById('load-status').textContent = cards.length + ' kaarten geladen';
       }
 
+      // ── Schema: per tafel hoeveel kaarten te oefenen ──
+
+      // Bucketgrenzen: einde van vandaag, morgen en de aankomende zondag.
+      function scheduleBucketEnds(now) {
+        var endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        var endOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 23, 59, 59, 999);
+        var daysUntilSunday = (7 - now.getDay()) % 7; // 0 als het zondag is
+        var endOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilSunday, 23, 59, 59, 999);
+        return { endOfToday: endOfToday, endOfTomorrow: endOfTomorrow, endOfWeek: endOfWeek };
+      }
+
+      // Bucket van een kaart: 'today' (nieuwe kaarten zijn meteen te oefenen),
+      // 'tomorrow', 'week' (rest van deze week) of null (pas later).
+      function scheduleBucket(card, ends) {
+        if (!card.seen || !card.nextReviewDate) {
+          return 'today';
+        }
+        var due = new Date(card.nextReviewDate);
+        if (due <= ends.endOfToday) return 'today';
+        if (due <= ends.endOfTomorrow) return 'tomorrow';
+        if (due <= ends.endOfWeek) return 'week';
+        return null;
+      }
+
+      // Rendert voor elke tafel (1-10) een tegel met de drie tellers.
+      // Tafel-lidmaatschap volgt buildSession: een kaart hoort bij tafel fact.a.
+      function renderSchedule() {
+        var container = document.getElementById('schedule-grid');
+        if (!container) return;
+
+        var ends = scheduleBucketEnds(new Date());
+        var colors = { today: '#FF6B6B', tomorrow: '#F39C12', week: '#3498DB' };
+        container.innerHTML = '';
+
+        for (var table = 1; table <= 10; table++) {
+          var counts = { today: 0, tomorrow: 0, week: 0 };
+          cards.forEach(function (card) {
+            if (card.fact.a !== table) return;
+            var bucket = scheduleBucket(card, ends);
+            if (bucket) counts[bucket]++;
+          });
+
+          var tile = document.createElement('div');
+          tile.className = 'w-14 bg-white rounded-2xl border-4 border-ink flex flex-col items-center py-1.5';
+          tile.setAttribute('data-table', String(table));
+          tile.setAttribute('title', 'Tafel ' + table + ' — vandaag: ' + counts.today +
+            ', morgen: ' + counts.tomorrow + ', deze week: ' + counts.week);
+
+          var num = document.createElement('span');
+          num.className = 'text-ink font-bold text-lg leading-none';
+          num.textContent = String(table);
+          tile.appendChild(num);
+
+          var row = document.createElement('div');
+          row.className = 'flex gap-1.5 mt-1 text-sm font-bold leading-none';
+          ['today', 'tomorrow', 'week'].forEach(function (bucket) {
+            var span = document.createElement('span');
+            span.style.color = colors[bucket];
+            span.setAttribute('data-bucket', bucket);
+            span.textContent = String(counts[bucket]);
+            row.appendChild(span);
+          });
+          tile.appendChild(row);
+
+          container.appendChild(tile);
+        }
+      }
+
       // ── Init bij het laden van de pagina ──
 
       cards = loadCards();
       loadStreak();
       refreshStats();
+      renderSchedule();
 
       // Globale toegang voor latere tickets en tests.
       window.App = {
@@ -401,6 +481,7 @@
         applyGrade: applyGrade,
         loadStreak: loadStreak,
         saveStreak: saveStreak,
+        renderSchedule: renderSchedule,
         STORAGE_KEY: STORAGE_KEY,
         STREAK_KEY: STREAK_KEY
       };
@@ -575,6 +656,13 @@
         var session = App.session;
         if (!session || session.currentIndex >= session.cards.length) return;
 
+        // Verwijder focus op een knop (bv. een beoordelingsknop van de vorige
+        // kaart), zodat Enter/Space nadien geen verborgen knop activeren.
+        var active = document.activeElement;
+        if (active && active.tagName === 'BUTTON' && typeof active.blur === 'function') {
+          active.blur();
+        }
+
         currentCard = session.cards[session.currentIndex];
         enteredDigits = '';
         answerChecked = false;
@@ -647,6 +735,12 @@
 
         // Schakel toetsenbord uit
         setKeypadEnabled(false);
+
+        // Verwijder focus, zodat Enter/Space na het nakijken geen knop activeren
+        var active = document.activeElement;
+        if (active && active.tagName === 'BUTTON' && typeof active.blur === 'function') {
+          active.blur();
+        }
 
         // Exposeer voor ticket 05 (beoordeling)
         App.quizState = {
@@ -738,7 +832,11 @@
             removeDigit();
           } else if (e.key === 'Enter') {
             e.preventDefault();
-            checkAnswer();
+            // Na het nakijken is Enter expres géén actie: beoordelen gebeurt
+            // met 1-4 of de knoppen — Enter mag niet zonder beoordeling verder.
+            if (!answerChecked) {
+              checkAnswer();
+            }
           }
         });
       }
@@ -820,6 +918,8 @@
         if (masteredEl) masteredEl.textContent = mastered + ' / 100';
         if (cardsEl) cardsEl.textContent = String(cards.length);
         if (loadEl) loadEl.textContent = cards.length + ' kaarten geladen';
+        // Schema-tellers (vandaag / morgen / deze week) verversen mee
+        App.renderSchedule();
       };
 
       // ── Beoordeling verwerken ──
